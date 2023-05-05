@@ -8,12 +8,13 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,9 +39,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import java.util.Timer
 import kotlin.concurrent.schedule
@@ -73,7 +72,7 @@ fun ShowCaseTarget(
     }
 
     currentTarget?.let {
-        IntroShowCase(targets = it, isAutomaticShowcase = isEnableAutoShowCase) {
+        IntroShowCase(targets = it, isAutomaticShowcase = isEnableAutoShowCase, content = it.content) {
             if (++currentTargetIndex >= uniqueTargets.size) {
                 onShowCaseCompleted()
                 preferences.show(key)
@@ -89,7 +88,10 @@ fun ShowCaseTarget(
  */
 @Composable
 fun IntroShowCase(
-    targets: ShowcaseProperty, isAutomaticShowcase: Boolean = false, onShowCaseCompleted: () -> Unit
+    targets: ShowcaseProperty,
+    isAutomaticShowcase: Boolean = false,
+    content: @Composable BoxScope.() -> Unit,
+    onShowCaseCompleted: () -> Unit
 ) {
     val targetRect = targets.coordinates.boundsInRoot()
     val targetRadius = targetRect.maxDimension / 2f + 20
@@ -254,9 +256,15 @@ fun IntroShowCase(
         }
     }
 
-    ShowText(currentTarget = targets, targetRect = targetRect, targetRadius = targetRadius) {
-        textCoordinate = it
-    }
+    ShowText(
+        currentTarget = targets,
+        targetRect = targetRect,
+        targetRadius = targetRadius,
+        content = content,
+        updateCoordinates = {
+            textCoordinate = it
+        }
+    )
 }
 
 /**
@@ -271,7 +279,8 @@ fun ShowText(
     currentTarget: ShowcaseProperty,
     targetRect: Rect,
     targetRadius: Float,
-    updateCoordinates: (LayoutCoordinates) -> Unit
+    updateCoordinates: (LayoutCoordinates) -> Unit,
+    content: @Composable BoxScope.() -> Unit
 ) {
     var txtOffsetY by remember { mutableStateOf(0f) }
     var txtOffsetX by remember { mutableStateOf(0f) }
@@ -310,16 +319,8 @@ fun ShowText(
         }
         .padding(2.dp)
     ) {
-        Text(
-            text = currentTarget.title,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = currentTarget.titleColor
-        )
-        Text(
-            text = currentTarget.subTitle,
-            fontSize = 14.sp,
-            color = currentTarget.subTitleColor,
+
+        BoxWithConstraints(
             modifier = Modifier.width(
                 if (txtRightOffSet > screenWidth) {
                     configuration.screenWidthDp.dp / 2 + 40.dp
@@ -327,7 +328,9 @@ fun ShowText(
                     configuration.screenWidthDp.dp
                 }
             )
-        )
+        ) {
+            content(this)
+        }
     }
 }
 

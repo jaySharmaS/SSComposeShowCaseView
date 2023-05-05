@@ -1,6 +1,11 @@
 package com.example.sscomposeshowcaseview
 
+import android.graphics.Typeface
 import android.os.Bundle
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
+import android.text.style.UnderlineSpan
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -45,8 +50,16 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.text.HtmlCompat
 import com.sscomposeshowcaseview.ShowCaseTarget
 import com.sscomposeshowcaseview.ShowcaseProperty
 import com.sscomposeshowcaseview.ShowcaseType
@@ -114,10 +127,13 @@ fun UserProfile(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) 
             target["profile"] = ShowcaseProperty(
                 index = 6,
                 coordinates = it,
-                title = "Profile",
-                subTitle = "User Profile with name and picture",
                 showCaseType = ShowcaseType.ANIMATED_RECTANGLE
-            )
+            ) {
+                ShowCaseDescription(
+                    title = "Profile",
+                    subTitle = "User Profile with name and picture"
+                )
+            }
         }) {
         Image(
             painter = painterResource(id = post.profilePic),
@@ -138,11 +154,14 @@ fun UserProfile(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) 
                     target["more"] = ShowcaseProperty(
                         index = 1,
                         coordinates = it,
-                        title = "More options",
-                        subTitle = "Click here to see options",
                         showCaseType = ShowcaseType.ANIMATED_RECTANGLE,
                         showcaseDelay = 5000
-                    )
+                    ) {
+                        ShowCaseDescription(
+                            title = "More options",
+                            subTitle = "Click here to see options"
+                        )
+                    }
                 }
         )
     }
@@ -179,11 +198,14 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                                 target["like"] = ShowcaseProperty(
                                     index = 2,
                                     coordinates = it,
-                                    title = "LIke Post",
-                                    subTitle = "Click here to like post",
-                                    showCaseType = ShowcaseType.ANIMATED_RECTANGLE,
-                                    showcaseDelay = 500
-                                )
+                                    showCaseType = ShowcaseType.ANIMATED_ROUNDED,
+                                    showcaseDelay = 5000
+                                ) {
+                                    ShowCaseDescription(
+                                        title = "LIke Post",
+                                        subTitle = "Click here to like post"
+                                    )
+                                }
                             }
                     )
                 }
@@ -198,11 +220,14 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                                 target["comment"] = ShowcaseProperty(
                                     index = 3,
                                     coordinates = it,
-                                    title = "Comment button",
-                                    subTitle = "Click here to add comment on post",
                                     showCaseType = ShowcaseType.ANIMATED_RECTANGLE,
                                     showcaseDelay = 1000
-                                )
+                                ) {
+                                    ShowCaseDescription(
+                                        title = "Comment button",
+                                        subTitle = "Click here to add comment on post and it has some very long text to test the feature how it works. Hopefully it works as intended nothing complicates. Lets see how it goes."
+                                    )
+                                }
                             }
                     )
                 }
@@ -217,10 +242,13 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                                 target["share"] = ShowcaseProperty(
                                     index = 4,
                                     coordinates = it,
-                                    title = "Share button",
-                                    subTitle = "Click here to Share post with others",
-                                    showCaseType = ShowcaseType.ANIMATED_RECTANGLE
-                                )
+                                    showCaseType = ShowcaseType.ANIMATED_RECTANGLE,
+                                ) {
+                                    ShowCaseDescription(
+                                        title = "Share button",
+                                        subTitle = "Click here to Share post with others"
+                                    )
+                                }
                             }
                     )
                 }
@@ -238,13 +266,88 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                             target["save"] = ShowcaseProperty(
                                 index = 5,
                                 coordinates = it,
-                                title = "Save button",
-                                subTitle = "Click here to save post",
                                 showCaseType = ShowcaseType.ANIMATED_RECTANGLE
-                            )
+                            ) {
+                                ShowCaseDescription(
+                                    title = "Save button",
+                                    subTitle = HtmlCompat
+                                        .fromHtml(
+                                            "Click <i>here</i> to save <b>post</b>",
+                                            HtmlCompat.FROM_HTML_MODE_COMPACT
+                                        )
+                                        .toAnnotatedString()
+                                )
+                            }
                         }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun ShowCaseDescription(
+    title: String,
+    subTitle: String
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = title,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+        Text(
+            text = subTitle,
+            fontSize = 14.sp,
+            color = Color.White
+        )
+    }
+}
+
+@Composable
+fun ShowCaseDescription(
+    title: String,
+    subTitle: AnnotatedString
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = title,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+        Text(
+            text = subTitle,
+            fontSize = 14.sp,
+            color = Color.White
+        )
+    }
+}
+
+/**
+ * Converts a [Spanned] into an [AnnotatedString] trying to keep as much formatting as possible.
+ *
+ * Currently supports `bold`, `italic`, `underline` and `color`.
+ */
+private fun Spanned.toAnnotatedString(): AnnotatedString = buildAnnotatedString {
+    val spanned = this@toAnnotatedString
+    append(spanned.toString())
+    getSpans(0, spanned.length, Any::class.java).forEach { span ->
+        val start = getSpanStart(span)
+        val end = getSpanEnd(span)
+        when (span) {
+            is StyleSpan -> when (span.style) {
+                Typeface.BOLD -> addStyle(SpanStyle(fontWeight = FontWeight.Bold), start, end)
+                Typeface.ITALIC -> addStyle(SpanStyle(fontStyle = FontStyle.Italic), start, end)
+                Typeface.BOLD_ITALIC -> addStyle(SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic), start, end)
+            }
+            is UnderlineSpan -> addStyle(SpanStyle(textDecoration = TextDecoration.Underline), start, end)
+            is ForegroundColorSpan -> addStyle(SpanStyle(color = Color(span.foregroundColor)), start, end)
         }
     }
 }
