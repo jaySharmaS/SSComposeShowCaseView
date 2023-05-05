@@ -8,7 +8,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,6 +41,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import java.util.Timer
+import java.util.TimerTask
 import kotlin.concurrent.schedule
 import kotlin.math.max
 import kotlin.math.min
@@ -72,12 +72,21 @@ fun ShowCaseTarget(
     }
 
     currentTarget?.let {
-        IntroShowCase(targets = it, isAutomaticShowcase = isEnableAutoShowCase, content = it.content) {
-            if (++currentTargetIndex >= uniqueTargets.size) {
+        IntroShowCase(
+            targets = it, isAutomaticShowcase = isEnableAutoShowCase,
+            content = it.content,
+            onShowCaseCompleted = {
+                if (++currentTargetIndex >= uniqueTargets.size) {
+                    onShowCaseCompleted()
+                    preferences.show(key)
+                }
+            },
+            onSkipAll = {
+                currentTargetIndex = uniqueTargets.size
                 onShowCaseCompleted()
                 preferences.show(key)
             }
-        }
+        )
     }
 }
 
@@ -87,11 +96,12 @@ fun ShowCaseTarget(
  * @param onShowCaseCompleted do the needful on completing showcase view.
  */
 @Composable
-fun IntroShowCase(
+private fun IntroShowCase(
     targets: ShowcaseProperty,
     isAutomaticShowcase: Boolean = false,
-    content: @Composable BoxScope.() -> Unit,
-    onShowCaseCompleted: () -> Unit
+    content: @Composable ShowcaseScope.() -> Unit,
+    onShowCaseCompleted: () -> Unit,
+    onSkipAll: () -> Unit
 ) {
     val targetRect = targets.coordinates.boundsInRoot()
     val targetRadius = targetRect.maxDimension / 2f + 20
@@ -150,12 +160,13 @@ fun IntroShowCase(
         outerRadius = getOuterRadius(textRect, targetRect) + targetRadius
     }
 
+    var timerTask: TimerTask? = null
     Canvas(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(targets) {
                 if (isAutomaticShowcase) {
-                    Timer(true).schedule(targets.showcaseDelay) {
+                    timerTask = Timer(true).schedule(targets.showcaseDelay) {
                         onShowCaseCompleted()
                     }
                 } else {
@@ -260,9 +271,17 @@ fun IntroShowCase(
         currentTarget = targets,
         targetRect = targetRect,
         targetRadius = targetRadius,
-        content = content,
         updateCoordinates = {
             textCoordinate = it
+        },
+        content = content,
+        onSkip = {
+            timerTask?.cancel()
+            onShowCaseCompleted()
+        },
+        onSkipAll = {
+            timerTask?.cancel()
+            onSkipAll()
         }
     )
 }
@@ -275,12 +294,14 @@ fun IntroShowCase(
  * @param updateCoordinates return when coordinates get updated
  */
 @Composable
-fun ShowText(
+private fun ShowText(
     currentTarget: ShowcaseProperty,
     targetRect: Rect,
     targetRadius: Float,
     updateCoordinates: (LayoutCoordinates) -> Unit,
-    content: @Composable BoxScope.() -> Unit
+    content: @Composable ShowcaseScope.() -> Unit,
+    onSkip: () -> Unit,
+    onSkipAll: () -> Unit
 ) {
     var txtOffsetY by remember { mutableStateOf(0f) }
     var txtOffsetX by remember { mutableStateOf(0f) }
@@ -329,12 +350,12 @@ fun ShowText(
                 }
             )
         ) {
-            content(this)
+            ShowcaseScopeImpl(this, onSkip, onSkipAll).content()
         }
     }
 }
 
-fun getOuterRadius(textRect: Rect, targetRect: Rect): Float {
+private fun getOuterRadius(textRect: Rect, targetRect: Rect): Float {
     // Get outer rect
     val topLeftX = min(textRect.topLeft.x, targetRect.topLeft.x)
     val topLeftY = min(textRect.topLeft.y, targetRect.topLeft.y)
@@ -348,7 +369,7 @@ fun getOuterRadius(textRect: Rect, targetRect: Rect): Float {
     return (distance / 2f)
 }
 
-fun getOuterCircleCenter(
+private fun getOuterCircleCenter(
     targetRect: Rect,
     textRect: Rect,
     targetRadius: Float,

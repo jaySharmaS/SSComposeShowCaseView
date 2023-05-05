@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.Button
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -157,10 +158,24 @@ fun UserProfile(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) 
                         showCaseType = ShowcaseType.ANIMATED_RECTANGLE,
                         showcaseDelay = 5000
                     ) {
-                        ShowCaseDescription(
-                            title = "More options",
-                            subTitle = "Click here to see options"
-                        )
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "More options",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Click here to see options",
+                                fontSize = 14.sp,
+                                color = Color.White
+                            )
+                            Button(onClick = this@ShowcaseProperty.onSkipSequence) {
+                                Text(text = "Skip All")
+                            }
+                        }
                     }
                 }
         )
@@ -203,7 +218,8 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                                 ) {
                                     ShowCaseDescription(
                                         title = "LIke Post",
-                                        subTitle = "Click here to like post"
+                                        subTitle = "Click here to like post",
+                                        onSkip = onSkipShowcase
                                     )
                                 }
                             }
@@ -288,7 +304,8 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
 @Composable
 fun ShowCaseDescription(
     title: String,
-    subTitle: String
+    subTitle: String,
+    onSkip: () -> Unit = { }
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -304,13 +321,17 @@ fun ShowCaseDescription(
             fontSize = 14.sp,
             color = Color.White
         )
+        Button(onClick = onSkip) {
+            Text(text = "Skip")
+        }
     }
 }
 
 @Composable
 fun ShowCaseDescription(
     title: String,
-    subTitle: AnnotatedString
+    subTitle: AnnotatedString,
+    onSkip: () -> Unit = { }
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -326,6 +347,9 @@ fun ShowCaseDescription(
             fontSize = 14.sp,
             color = Color.White
         )
+        Button(onClick = onSkip) {
+            Text(text = "Skip")
+        }
     }
 }
 
