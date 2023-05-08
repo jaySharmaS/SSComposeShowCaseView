@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,6 +46,8 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -185,6 +188,7 @@ fun UserProfile(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) 
 @Composable
 fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
     val isLikeClicked = remember { mutableStateOf(true) }
+    val focusRequester = remember { FocusRequester() }
     Column(modifier = Modifier.fillMaxWidth()) {
         Image(
             painter = painterResource(id = post.profilePic),
@@ -208,6 +212,8 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                         imageVector = if (isLikeClicked.value) Icons.Default.FavoriteBorder else Icons.Filled.Favorite,
                         contentDescription = "Fav",
                         modifier = Modifier
+                            .focusRequester(focusRequester)
+                            .focusable()
                             .size(30.dp)
                             .onGloballyPositioned {
                                 target["like"] = ShowcaseProperty(
@@ -216,6 +222,7 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                                     showCaseType = ShowcaseType.ANIMATED_ROUNDED,
                                     showcaseDelay = 5000
                                 ) {
+                                    focusRequester.requestFocus()
                                     ShowCaseDescription(
                                         title = "LIke Post",
                                         subTitle = "Click here to like post",
