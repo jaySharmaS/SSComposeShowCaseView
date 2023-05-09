@@ -1,5 +1,6 @@
 package com.sscomposeshowcaseview
 
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -7,6 +8,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +30,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -43,6 +47,7 @@ import kotlinx.coroutines.delay
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.concurrent.schedule
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -264,8 +269,43 @@ private fun IntroShowCase(
                     )
                 }
             }
+            ShowcaseType.POINTER -> {
+                drawRect(
+                    Color.Black.copy(alpha = targets.blurOpacity),
+                    size = Size(size.width + 40f, size.height + 40f),
+                    style = Fill,
+                )
+                drawRect(
+                    Color.White,
+                    size = Size(rectSize.width + 15f, rectSize.height + 15f),
+                    style = Fill,
+                    topLeft = Offset(xOffset - 8, yOffset - 8),
+                    blendMode = BlendMode.Clear
+                )
+
+                val contentRect = textCoordinate?.boundsInRoot() ?: Rect.Zero
+                if ((rectSize.width > size.width) || (rectSize.height > size.height)) {
+
+                } else {
+                    if (contentRect.overlaps(targetRect)) {
+                        // find distance from center to top and bottom direction
+                        val distanceFromCenter = center.y - targetRect.center.y
+                        if (distanceFromCenter > 0) {
+                            // top
+                            Log.d("TAG", "Distance from center is : Top")
+                        } else {
+                            // bottom
+                            Log.d("TAG", "Distance from center is : Bottom")
+                        }
+                    }
+                }
+
+            }
         }
     }
+
+    //val path = Path()
+    //path.moveTo()
 
     ShowText(
         currentTarget = targets,
@@ -273,6 +313,16 @@ private fun IntroShowCase(
         targetRadius = targetRadius,
         updateCoordinates = {
             textCoordinate = it
+            /*if ((it.boundsInRoot().center.y > targetRect.center.y)) {
+                Log.d("TAG", "IntroShowCase: bottom")
+            } else {
+                Log.d("TAG", "IntroShowCase: top")
+            }
+            if ((it.boundsInRoot().center.x > targetRect.center.x)) {
+                Log.d("TAG", "IntroShowCase: Right")
+            } else {
+                Log.d("TAG", "IntroShowCase: Left")
+            }*/
         },
         content = content,
         onSkip = {
@@ -342,13 +392,15 @@ private fun ShowText(
     ) {
 
         BoxWithConstraints(
-            modifier = Modifier.width(
-                if (txtRightOffSet > screenWidth) {
-                    configuration.screenWidthDp.dp / 2 + 40.dp
-                } else {
-                    configuration.screenWidthDp.dp
-                }
-            )
+            modifier = Modifier
+                .width(
+                    if (txtRightOffSet > screenWidth) {
+                        configuration.screenWidthDp.dp / 2 + 40.dp
+                    } else {
+                        configuration.screenWidthDp.dp
+                    }
+                )
+                .background(Color.White, RoundedCornerShape(5))
         ) {
             ShowcaseScopeImpl(this, onSkip, onSkipAll).content()
         }

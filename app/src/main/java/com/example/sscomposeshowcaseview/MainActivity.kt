@@ -158,7 +158,7 @@ fun UserProfile(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) 
                     target["more"] = ShowcaseProperty(
                         index = 1,
                         coordinates = it,
-                        showCaseType = ShowcaseType.ANIMATED_RECTANGLE,
+                        showCaseType = ShowcaseType.POINTER,
                         showcaseDelay = 5000
                     ) {
                         Column(
@@ -188,14 +188,27 @@ fun UserProfile(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) 
 @Composable
 fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
     val isLikeClicked = remember { mutableStateOf(true) }
-    val focusRequester = remember { FocusRequester() }
+    //val focusRequester = remember { FocusRequester() }
     Column(modifier = Modifier.fillMaxWidth()) {
         Image(
             painter = painterResource(id = post.profilePic),
             contentDescription = "User post",
             modifier = Modifier
                 .fillMaxWidth()
-                .height(450.dp),
+                .height(450.dp)
+                .onGloballyPositioned {
+                    target["post_image"] = ShowcaseProperty(
+                        index = 7,
+                        coordinates = it,
+                        showCaseType = ShowcaseType.POINTER,
+                        showcaseDelay = 15000
+                    ) {
+                        ShowCaseDescription(
+                            title = "Post Image",
+                            subTitle = "Click here to add comment on post and it has some very long text to test the feature how it works. Hopefully it works as intended nothing complicates. Lets see how it goes."
+                        )
+                    }
+                },
             contentScale = ContentScale.Crop
         )
         Box(
@@ -212,8 +225,8 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                         imageVector = if (isLikeClicked.value) Icons.Default.FavoriteBorder else Icons.Filled.Favorite,
                         contentDescription = "Fav",
                         modifier = Modifier
-                            .focusRequester(focusRequester)
-                            .focusable()
+                            //.focusRequester(focusRequester)
+                            //.focusable()
                             .size(30.dp)
                             .onGloballyPositioned {
                                 target["like"] = ShowcaseProperty(
@@ -222,7 +235,7 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                                     showCaseType = ShowcaseType.ANIMATED_ROUNDED,
                                     showcaseDelay = 5000
                                 ) {
-                                    focusRequester.requestFocus()
+                                    //focusRequester.requestFocus()
                                     ShowCaseDescription(
                                         title = "LIke Post",
                                         subTitle = "Click here to like post",
