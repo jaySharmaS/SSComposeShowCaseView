@@ -285,7 +285,7 @@ private fun IntroShowCase(
 
                 val contentRect = textCoordinate?.boundsInRoot() ?: Rect.Zero
                 if ((rectSize.width > size.width) || (rectSize.height > size.height)) {
-
+                    Log.d("TAG", "Distance from center is : width || height")
                 } else {
                     if (contentRect.overlaps(targetRect)) {
                         // find distance from center to top and bottom direction
