@@ -1,5 +1,9 @@
 package com.sscomposeshowcaseview
 
+import android.util.Log
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -14,6 +18,8 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateMap
@@ -23,7 +29,10 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -131,7 +140,7 @@ fun TestPointer2() {
         size = Size(300f, 100f)
     )
     val pointerRect = Rect(
-        offset = Offset(100f, 700f),
+        offset = Offset(500f, 700f),
         size = Size(550f, 400f)
     )
 
@@ -141,13 +150,13 @@ fun TestPointer2() {
      */
 
     val centerLeftT = targetRect.centerLeft
-    val centerRightT = targetRect.centerLeft
-    val centerTopT = targetRect.centerLeft
-    val centerBottomT = targetRect.centerLeft
+    val centerRightT = targetRect.centerRight
+    val centerTopT = targetRect.topCenter
+    val centerBottomT = targetRect.bottomCenter
     val centerLeftP = pointerRect.centerLeft
-    val centerRightP = pointerRect.centerLeft
-    val centerTopP = pointerRect.centerLeft
-    val centerBottomP = pointerRect.centerLeft
+    val centerRightP = pointerRect.centerRight
+    val centerTopP = pointerRect.topCenter
+    val centerBottomP = pointerRect.bottomCenter
     val listT = listOf(
         centerLeftT, centerRightT, centerTopT, centerBottomT,
     )
@@ -173,11 +182,43 @@ fun TestPointer2() {
         }
     }
 
+    Log.d("TAG", "TestPointer2: $closeOffset")
+
     /**
      * Start drawing a line starting at a,ya (first point you got in the step above),
      * and draw it in the direction away from the rectangle.
      * You should know this direction, because you can know the line segment this point is on.
      */
+    val path = Path()
+    path.moveTo(closeOffset.second.x, closeOffset.second.y)
+    path.lineTo(closeOffset.second.x, closeOffset.first.y)
+    path.lineTo(closeOffset.first.x, closeOffset.first.y)
+
+    /*val drawPathAnimation = remember {
+        Animatable(0f)
+    }
+    val pathMeasure = remember {
+        PathMeasure()
+    }
+    LaunchedEffect(key1 = Unit, block = {
+        drawPathAnimation.animateTo(
+            1f,
+            animationSpec = tween(2000, easing = FastOutSlowInEasing)
+        )
+    })
+    val animatedPath = remember {
+        derivedStateOf {
+            val newPath = Path()
+            pathMeasure.setPath(path, false)
+            // get a segment of the path at the percentage of the animation, to show a drawing on
+            // screen animation
+            pathMeasure.getSegment(
+                0f,
+                drawPathAnimation.value * pathMeasure.length, newPath
+            )
+            newPath
+        }
+    }*/
 
     Canvas(
         modifier = Modifier
@@ -202,6 +243,15 @@ fun TestPointer2() {
             topLeft = pointerRect.topLeft,
             blendMode = BlendMode.Clear
         )
+        drawPath(
+            path = path,
+            color = Color.White,
+            style = Stroke(width = 3f)
+        )
+        /*drawCircle(Color.Red, radius = 5f, center = closeOffset.first)
+        drawCircle(Color.Red, radius = 5f, center = closeOffset.second)
+        drawLine(Color.Red, closeOffset.first, Offset(closeOffset.second.x, closeOffset.first.y))
+        drawLine(Color.Red, Offset(closeOffset.second.x, closeOffset.first.y), closeOffset.second)*/
     }
 }
 

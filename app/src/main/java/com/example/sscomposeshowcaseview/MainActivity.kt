@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -67,6 +68,7 @@ import androidx.core.text.HtmlCompat
 import com.sscomposeshowcaseview.ShowCaseTarget
 import com.sscomposeshowcaseview.ShowcaseProperty
 import com.sscomposeshowcaseview.ShowcaseType
+import com.sscomposeshowcaseview.TestPointer2
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -75,7 +77,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ShowcaseExample()
+            Box(modifier = Modifier.fillMaxSize()) {
+                TestPointer2()
+            }
+            //ShowcaseExample()
         }
     }
 }
