@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Arrays
 
 @Composable
 fun PointerTest(targets: SnapshotStateMap<String, ShowcaseProperty>) {
@@ -136,7 +137,7 @@ draw these straight lines.
 @Composable
 fun TestPointer2() {
     val targetRect = Rect(
-        offset = Offset(700f, 100f),
+        offset = Offset(100f, 100f),
         size = Size(300f, 100f)
     )
     val pointerRect = Rect(
@@ -189,12 +190,19 @@ fun TestPointer2() {
      * and draw it in the direction away from the rectangle.
      * You should know this direction, because you can know the line segment this point is on.
      */
-    val path = Path()
+    /*val path = Path()
     path.moveTo(closeOffset.second.x, closeOffset.second.y)
     path.lineTo(closeOffset.second.x, closeOffset.first.y)
-    path.lineTo(closeOffset.first.x, closeOffset.first.y)
+    path.lineTo(closeOffset.first.x, closeOffset.first.y)*/
+    val pathData = getPathData(fromRect = pointerRect, toRect = targetRect)
+    val path = pathify(pathData)
+    /*val path = Path()
+    path.moveTo(850f, 200f)
+    path.lineTo(850f, 450f)
+    path.lineTo(775f, 450f)
+    path.lineTo(775f, 691f)*/
 
-    /*val drawPathAnimation = remember {
+    val drawPathAnimation = remember {
         Animatable(0f)
     }
     val pathMeasure = remember {
@@ -218,7 +226,11 @@ fun TestPointer2() {
             )
             newPath
         }
-    }*/
+    }
+
+    if (drawPathAnimation.value >= 1f) {
+        Log.d("TAG", "TestPointer2: finished")
+    }
 
     Canvas(
         modifier = Modifier
@@ -244,7 +256,7 @@ fun TestPointer2() {
             blendMode = BlendMode.Clear
         )
         drawPath(
-            path = path,
+            path = animatedPath.value,
             color = Color.White,
             style = Stroke(width = 3f)
         )
@@ -252,6 +264,136 @@ fun TestPointer2() {
         drawCircle(Color.Red, radius = 5f, center = closeOffset.second)
         drawLine(Color.Red, closeOffset.first, Offset(closeOffset.second.x, closeOffset.first.y))
         drawLine(Color.Red, Offset(closeOffset.second.x, closeOffset.first.y), closeOffset.second)*/
+        pathData.forEach {
+            Log.d("TAG", "TestPointer2: $it")
+            drawCircle(Color.Red, radius = 5f, center = it)
+        }
+    }
+}
+
+private fun pathify(pathData: Array<Offset>): Path {
+    //val path = Path()
+    //Log.d("TAG", "pathify: ${Arrays.toString(pathData)}")
+
+    /*return "M ${pathData.map { p ->
+        "${p.x} ${p.y}"
+    }}"*/
+    return Path().apply {
+        pathData.forEachIndexed { index, offset ->
+            if (index == 0) {
+                moveTo(offset.x, offset.y)
+            } else {
+                lineTo(offset.x, offset.y)
+            }
+            /*if (index == 1) {
+                path.moveTo(offset.x, offset.y)
+            } else {
+            }*/
+
+        }
+    }
+}
+
+private fun getPosition(from: Rect, to: Rect): String? {
+    val allowYConnect =
+    from.left - POS_OFFSET < to.right && from.right + to.width > to.right - POS_OFFSET
+
+    val bottomToTop = from.bottom < to.top && allowYConnect
+    val topToBottom = from.top > to.bottom && allowYConnect
+    val rightToLeft = from.left > to.right
+    val leftToRight = from.right < to.left
+
+    if (bottomToTop) return "bottom-to-top"
+    if (topToBottom) return "top-to-bottom"
+    if (rightToLeft) return "right-to-left"
+    if (leftToRight) return "left-to-right"
+
+    return null
+}
+
+private fun getPathData(fromRect: Rect, toRect: Rect): Array<Offset> {
+    return when (getPosition(fromRect, toRect)) {
+        "bottom-to-top" -> {
+            arrayOf(
+                Offset(
+                    x = fromRect.left + fromRect.width / 2,
+                    y = fromRect.bottom,
+                ),
+                Offset(
+                    x = fromRect.left + fromRect.width / 2,
+                    y = fromRect.bottom - (fromRect.bottom - toRect.top) / 2,
+                ),
+                Offset(
+                    x = toRect.left + toRect.width / 2,
+                    y = fromRect.bottom - (fromRect.bottom - toRect.top) / 2,
+                ),
+                Offset(
+                    x = toRect.left + toRect.width / 2,
+                    y = toRect.top - LINE_OFFSET,
+                ),
+            )
+        }
+        "top-to-bottom" -> {
+            arrayOf(
+                Offset(
+                    x = fromRect.left + fromRect.width / 2,
+                    y = fromRect.top,
+                ),
+                Offset(
+                    x = fromRect.left + fromRect.width / 2,
+                    y = fromRect.top - (fromRect.top - toRect.bottom) / 2,
+                ),
+                Offset(
+                    x = toRect.left + toRect.width / 2,
+                    y = fromRect.top - (fromRect.top - toRect.bottom) / 2,
+                ),
+                Offset(
+                    x = toRect.left + toRect.width / 2,
+                    y = toRect.bottom + LINE_OFFSET,
+                ),
+            )
+        }
+        "right-to-left" -> {
+            arrayOf(
+                Offset(
+                    x = fromRect.left,
+                    y = fromRect.bottom - fromRect.height / 2,
+                ),
+                Offset(
+                    x = (toRect.right + fromRect.left) / 2,
+                    y = fromRect.bottom - fromRect.height / 2,
+                ),
+                Offset(
+                    x = (toRect.right + fromRect.left) / 2,
+                    y = toRect.top + toRect.height / 2,
+                ),
+                Offset(
+                    x = toRect.right + LINE_OFFSET,
+                    y = toRect.top + toRect.height / 2,
+                ),
+            )
+        }
+        "left-to-right" -> {
+            arrayOf(
+                Offset(
+                    x = fromRect.right,
+                    y = fromRect.bottom - fromRect.height / 2,
+                ),
+                Offset(
+                    x = (toRect.left + fromRect.right) / 2,
+                    y = fromRect.bottom - fromRect.height / 2,
+                ),
+                Offset(
+                    x = (toRect.left + fromRect.right) / 2,
+                    y = toRect.top + toRect.height / 2,
+                ),
+                Offset(
+                    x = toRect.left - LINE_OFFSET,
+                    y = toRect.top + toRect.height / 2,
+                ),
+            )
+        }
+        else -> arrayOf()
     }
 }
 
@@ -264,3 +406,6 @@ fun PointerTest2Preview() {
         }
     }
 }
+
+private const val LINE_OFFSET = 9
+private const val POS_OFFSET = 40
