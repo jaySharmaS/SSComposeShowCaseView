@@ -3,6 +3,8 @@ package com.sscomposeshowcaseview
 import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -36,6 +38,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -202,6 +205,10 @@ fun TestPointer2() {
     path.lineTo(775f, 450f)
     path.lineTo(775f, 691f)*/
 
+    val circleWidth = remember {
+        Animatable(0f)
+    }
+
     val drawPathAnimation = remember {
         Animatable(0f)
     }
@@ -229,6 +236,12 @@ fun TestPointer2() {
     }
 
     if (drawPathAnimation.value >= 1f) {
+        LaunchedEffect(key1 = Unit, block = {
+            circleWidth.animateTo(
+                targetValue = 6f,
+                animationSpec = tween(2000, easing = FastOutSlowInEasing)
+            )
+        })
         Log.d("TAG", "TestPointer2: finished")
     }
 
@@ -258,16 +271,18 @@ fun TestPointer2() {
         drawPath(
             path = animatedPath.value,
             color = Color.White,
-            style = Stroke(width = 3f)
+            style = Stroke(width = 3.dp.value)
         )
+        drawCircle(Color.White, radius = circleWidth.value.dp.toPx(), center = pathData.last())
+        drawCircle(Color.Gray, radius = circleWidth.value.dp.toPx() - density, center = pathData.last())
         /*drawCircle(Color.Red, radius = 5f, center = closeOffset.first)
         drawCircle(Color.Red, radius = 5f, center = closeOffset.second)
         drawLine(Color.Red, closeOffset.first, Offset(closeOffset.second.x, closeOffset.first.y))
         drawLine(Color.Red, Offset(closeOffset.second.x, closeOffset.first.y), closeOffset.second)*/
-        pathData.forEach {
+        /*pathData.forEach {
             Log.d("TAG", "TestPointer2: $it")
             drawCircle(Color.Red, radius = 5f, center = it)
-        }
+        }*/
     }
 }
 

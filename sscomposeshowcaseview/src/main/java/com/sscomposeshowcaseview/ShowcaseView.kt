@@ -270,7 +270,7 @@ private fun IntroShowCase(
                 }
             }
             ShowcaseType.POINTER -> {
-                drawRect(
+                /*drawRect(
                     Color.Black.copy(alpha = targets.blurOpacity),
                     size = Size(size.width + 40f, size.height + 40f),
                     style = Fill,
@@ -298,7 +298,7 @@ private fun IntroShowCase(
                             Log.d("TAG", "Distance from center is : Bottom")
                         }
                     }
-                }
+                }*/
 
             }
         }
