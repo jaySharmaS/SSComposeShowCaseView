@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,7 +32,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -155,6 +158,51 @@ private fun IntroShowCase(
         targets.coordinates.positionInRoot().y.toDp()
     }
     var outerOffset by remember { mutableStateOf(Offset(0f, 0f)) }
+
+    if (targets.showCaseType == ShowcaseType.POINTER) {
+        val pathData = getPathData(fromRect = pointerRect, toRect = targetRect)
+        val path = pathify(pathData)
+
+        val circleWidth = remember {
+            Animatable(0f)
+        }
+
+        val drawPathAnimation = remember {
+            Animatable(0f)
+        }
+        val pathMeasure = remember {
+            PathMeasure()
+        }
+        LaunchedEffect(key1 = Unit, block = {
+            drawPathAnimation.animateTo(
+                1f,
+                animationSpec = tween(2000, easing = FastOutSlowInEasing)
+            )
+        })
+        val animatedPath = remember {
+            derivedStateOf {
+                val newPath = Path()
+                pathMeasure.setPath(path, false)
+                // get a segment of the path at the percentage of the animation, to show a drawing on
+                // screen animation
+                pathMeasure.getSegment(
+                    0f,
+                    drawPathAnimation.value * pathMeasure.length, newPath
+                )
+                newPath
+            }
+        }
+
+        if (drawPathAnimation.value >= 1f) {
+            LaunchedEffect(key1 = Unit, block = {
+                circleWidth.animateTo(
+                    targetValue = 6f,
+                    animationSpec = tween(2000, easing = FastOutSlowInEasing)
+                )
+            })
+            Log.d("TAG", "TestPointer2: finished")
+        }
+    }
 
     textCoordinate?.let {
         val textRect = it.boundsInRoot()
@@ -300,6 +348,34 @@ private fun IntroShowCase(
                     }
                 }*/
 
+                drawRect(
+                    Color.Black.copy(alpha = 0.4f),
+                    size = Size(size.width + 40f, size.height + 40f),
+                    style = Fill,
+                )
+                drawRect(
+                    Color.White,
+                    size = targetRect.size,
+                    style = Fill,
+                    topLeft = targetRect.topLeft,
+                    blendMode = BlendMode.Clear
+                )
+                textCoordinate?.boundsInParent()?.let { pointerRect ->
+                    drawRect(
+                        Color.White,
+                        size = pointerRect.size,
+                        style = Fill,
+                        topLeft = pointerRect.topLeft,
+                        blendMode = BlendMode.Clear
+                    )
+                }
+                drawPath(
+                    path = animatedPath.value,
+                    color = Color.White,
+                    style = Stroke(width = 3.dp.value)
+                )
+                drawCircle(Color.White, radius = circleWidth.value.dp.toPx(), center = pathData.last())
+                drawCircle(Color.Gray, radius = circleWidth.value.dp.toPx() - density, center = pathData.last())
             }
         }
     }
@@ -334,6 +410,11 @@ private fun IntroShowCase(
             onSkipAll()
         }
     )
+}
+
+@Composable
+private fun PointerShowCaseView() {
+
 }
 
 /**
