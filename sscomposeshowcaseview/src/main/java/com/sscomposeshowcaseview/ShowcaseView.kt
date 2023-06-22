@@ -33,9 +33,11 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathMeasure
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInParent
@@ -80,7 +82,7 @@ fun ShowCaseTarget(
     }
 
     currentTarget?.let {
-        IntroShowCase(
+        IntroShowCase2(
             targets = it, isAutomaticShowcase = isEnableAutoShowCase,
             content = it.content,
             onShowCaseCompleted = {
@@ -96,6 +98,296 @@ fun ShowCaseTarget(
             }
         )
     }
+}
+
+@Composable
+private fun IntroShowCase2(
+    targets: ShowcaseProperty,
+    isAutomaticShowcase: Boolean = false,
+    content: @Composable ShowcaseScope.() -> Unit,
+    onShowCaseCompleted: () -> Unit,
+    onSkipAll: () -> Unit
+) {
+    val targetRect = targets.coordinates.boundsInRoot()
+    val targetRadius = targetRect.maxDimension / 2f + 20
+
+    var textCoordinate: LayoutCoordinates? by remember { mutableStateOf(null) }
+    var outerRadius by remember { mutableStateOf(0f) }
+    val topArea = 10.dp
+    val screenHeight = LocalConfiguration.current.screenHeightDp
+    val textYOffset = with(LocalDensity.current) {
+        targets.coordinates.positionInRoot().y.toDp()
+    }
+    var outerOffset by remember { mutableStateOf(Offset(0f, 0f)) }
+
+    textCoordinate?.let {
+        val textRect = it.boundsInRoot()
+        val textHeight = it.size.height
+        val isInGutter = topArea > textYOffset || textYOffset > screenHeight.dp.minus(topArea)
+        outerOffset =
+            getOuterCircleCenter(targetRect, textRect, targetRadius, textHeight, isInGutter)
+        outerRadius = getOuterRadius(textRect, targetRect) + targetRadius
+    }
+
+    var timerTask: TimerTask? = null
+    val pointerInput : suspend PointerInputScope.() -> Unit = remember(isAutomaticShowcase, targets) {
+        {
+            if (isAutomaticShowcase) {
+                timerTask = Timer(true).schedule(targets.showcaseDelay) {
+                    onShowCaseCompleted()
+                }
+            } else {
+                detectTapGestures { tapOffset ->
+                    if (targetRect.contains(tapOffset)) {
+                        onShowCaseCompleted()
+                    }
+                }
+            }
+        }
+    }
+
+    when (targets.showCaseType) {
+        ShowcaseType.SIMPLE_ROUNDED -> {
+            DrawOnCanvas(
+                targets = targets,
+                pointerInput = pointerInput
+            ) {
+                drawCircle(
+                    color = Color.Black.copy(alpha = targets.blurOpacity),
+                    radius = size.maxDimension,
+                    alpha = 0.9f
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = targetRadius - 10f,
+                    center = targetRect.center,
+                    blendMode = BlendMode.Clear
+                )
+            }
+        }
+        ShowcaseType.SIMPLE_RECTANGLE -> {
+            val xOffset = targetRect.topLeft.x
+            val yOffset = targetRect.topLeft.y
+            val rectSize = targets.coordinates.boundsInParent().size
+            DrawOnCanvas(
+                targets = targets,
+                pointerInput = pointerInput
+            ) {
+                drawRect(
+                    Color.Black.copy(alpha = targets.blurOpacity),
+                    size = Size(size.width + 40f, size.height + 40f),
+                    style = Fill,
+                )
+                drawRect(
+                    Color.White,
+                    size = Size(rectSize.width + 15f, rectSize.height + 15f),
+                    style = Fill,
+                    topLeft = Offset(xOffset - 8, yOffset - 8),
+                    blendMode = BlendMode.Clear
+                )
+            }
+        }
+        ShowcaseType.ANIMATED_ROUNDED -> {
+            // Animation setup for rounded animation
+            val animationSpec = infiniteRepeatable<Float>(
+                animation = tween(2000, easing = FastOutLinearInEasing),
+                repeatMode = RepeatMode.Restart
+            )
+            val animaTables = listOf(
+                remember { Animatable(0f) },
+                remember { Animatable(0f) }
+            )
+            val outerAnimaTable = remember { Animatable(0.6f) }
+            animaTables.forEachIndexed { index, animaTable ->
+                LaunchedEffect(animaTable) {
+                    delay(index * 1000L)
+                    animaTable.animateTo(1f, animationSpec = animationSpec)
+                }
+            }
+            LaunchedEffect(targets) {
+                outerAnimaTable.snapTo(0.6f)
+                outerAnimaTable.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(500, easing = FastOutSlowInEasing)
+                )
+            }
+            // Map animation to y position of the components
+            val dys = animaTables.map { it.value }
+            DrawOnCanvas(
+                targets = targets,
+                pointerInput = pointerInput
+            ) {
+                drawCircle(
+                    color = Color.Black,
+                    center = outerOffset,
+                    radius = outerRadius * outerAnimaTable.value,
+                    alpha = targets.blurOpacity
+                )
+                // draw circle with animation
+                dys.forEach { dy ->
+                    drawCircle(
+                        color = Color.White,
+                        radius = targetRect.maxDimension * dy * 2f,
+                        center = targetRect.center,
+                        alpha = 1 - dy
+                    )
+                }
+                drawCircle(
+                    color = Color.White,
+                    radius = targetRadius,
+                    center = targetRect.center,
+                    blendMode = BlendMode.Clear
+                )
+            }
+        }
+        ShowcaseType.ANIMATED_RECTANGLE -> {
+            val xOffset = targetRect.topLeft.x
+            val yOffset = targetRect.topLeft.y
+            val rectSize = targets.coordinates.boundsInParent().size
+            val animationSpec = infiniteRepeatable<Float>(
+                animation = tween(2000, easing = FastOutLinearInEasing),
+                repeatMode = RepeatMode.Reverse
+            )
+            val animaTables = listOf(
+                remember { Animatable(0f) },
+                remember { Animatable(0f) }
+            )
+            animaTables.forEachIndexed { index, animaTable ->
+                LaunchedEffect(animaTable) {
+                    delay(index * 1000L)
+                    animaTable.animateTo(1f, animationSpec = animationSpec)
+                }
+            }
+            // Map animation to y position of the components
+            val dys = animaTables.map { it.value }
+            DrawOnCanvas(
+                targets = targets,
+                pointerInput = pointerInput
+            ) {
+                drawRect(
+                    Color.Black.copy(alpha = targets.blurOpacity),
+                    size = Size(size.width + 40f, size.height + 40f),
+                    style = Fill,
+                )
+                drawRect(
+                    Color.White,
+                    size = Size(rectSize.width + 15f, rectSize.height + 15f),
+                    style = Fill,
+                    topLeft = Offset(xOffset - 8, yOffset - 8),
+                    blendMode = BlendMode.Clear
+                )
+                dys.forEach { dy ->
+                    drawRect(
+                        color = Color.White.copy(alpha = targets.blurOpacity),
+                        size = Size(rectSize.width * dy * 2, rectSize.height * dy * 2),
+                        topLeft = Offset(xOffset - 12, yOffset - 12),
+                        alpha = 1 - dy
+                    )
+                }
+            }
+        }
+        ShowcaseType.POINTER -> {
+            textCoordinate?.boundsInParent()?.let { pointerRect ->
+                val pathData = remember(pointerRect, targetRect) {
+                    getPathData(fromRect = pointerRect, toRect = targetRect)
+                }
+                val path = remember(pathData) {
+                    pathify(pathData)
+                }
+                val circleWidth = remember {
+                    Animatable(0f)
+                }
+                val drawPathAnimation = remember {
+                    Animatable(0f)
+                }
+                val pathMeasure = remember {
+                    PathMeasure()
+                }
+                LaunchedEffect(key1 = Unit, block = {
+                    drawPathAnimation.animateTo(
+                        1f,
+                        animationSpec = tween(2000, easing = FastOutSlowInEasing)
+                    )
+                })
+                val animatedPath = remember(path) {
+                    derivedStateOf {
+                        val newPath = Path()
+                        pathMeasure.setPath(path, false)
+                        // get a segment of the path at the percentage of the animation, to show a drawing on
+                        // screen animation
+                        pathMeasure.getSegment(
+                            0f,
+                            drawPathAnimation.value * pathMeasure.length, newPath
+                        )
+                        newPath
+                    }
+                }
+
+                if (drawPathAnimation.value >= 1f) {
+                    LaunchedEffect(key1 = Unit, block = {
+                        circleWidth.animateTo(
+                            targetValue = 6f,
+                            animationSpec = tween(2000, easing = FastOutSlowInEasing)
+                        )
+                    })
+                    Log.d("TAG", "TestPointer2: finished")
+                }
+                DrawOnCanvas(
+                    targets = targets,
+                    pointerInput = pointerInput
+                ) {
+
+                    drawRect(
+                        Color.Black.copy(alpha = 0.4f),
+                        size = Size(size.width + 40f, size.height + 40f),
+                        style = Fill,
+                    )
+                    drawRect(
+                        Color.White,
+                        size = targetRect.size,
+                        style = Fill,
+                        topLeft = targetRect.topLeft,
+                        blendMode = BlendMode.Clear
+                    )
+                    drawRect(
+                        Color.White,
+                        size = pointerRect.size,
+                        style = Fill,
+                        topLeft = pointerRect.topLeft,
+                        blendMode = BlendMode.Clear
+                    )
+                    drawPath(
+                        path = animatedPath.value,
+                        color = Color.White,
+                        style = Stroke(width = 3.dp.value)
+                    )
+                    pathData.lastOrNull()?.let {
+                        drawCircle(Color.White, radius = circleWidth.value.dp.toPx(), center = it)
+                        drawCircle(Color.Gray, radius = circleWidth.value.dp.toPx() - density, center = it)
+                    }
+                }
+            }
+        }
+    }
+
+    // Draw content
+    ShowText(
+        currentTarget = targets,
+        targetRect = targetRect,
+        targetRadius = targetRadius,
+        updateCoordinates = {
+            textCoordinate = it
+        },
+        content = content,
+        onSkip = {
+            timerTask?.cancel()
+            onShowCaseCompleted()
+        },
+        onSkipAll = {
+            timerTask?.cancel()
+            onSkipAll()
+        }
+    )
 }
 
 /**
@@ -159,50 +451,6 @@ private fun IntroShowCase(
     }
     var outerOffset by remember { mutableStateOf(Offset(0f, 0f)) }
 
-    if (targets.showCaseType == ShowcaseType.POINTER) {
-        val pathData = getPathData(fromRect = pointerRect, toRect = targetRect)
-        val path = pathify(pathData)
-
-        val circleWidth = remember {
-            Animatable(0f)
-        }
-
-        val drawPathAnimation = remember {
-            Animatable(0f)
-        }
-        val pathMeasure = remember {
-            PathMeasure()
-        }
-        LaunchedEffect(key1 = Unit, block = {
-            drawPathAnimation.animateTo(
-                1f,
-                animationSpec = tween(2000, easing = FastOutSlowInEasing)
-            )
-        })
-        val animatedPath = remember {
-            derivedStateOf {
-                val newPath = Path()
-                pathMeasure.setPath(path, false)
-                // get a segment of the path at the percentage of the animation, to show a drawing on
-                // screen animation
-                pathMeasure.getSegment(
-                    0f,
-                    drawPathAnimation.value * pathMeasure.length, newPath
-                )
-                newPath
-            }
-        }
-
-        if (drawPathAnimation.value >= 1f) {
-            LaunchedEffect(key1 = Unit, block = {
-                circleWidth.animateTo(
-                    targetValue = 6f,
-                    animationSpec = tween(2000, easing = FastOutSlowInEasing)
-                )
-            })
-            Log.d("TAG", "TestPointer2: finished")
-        }
-    }
 
     textCoordinate?.let {
         val textRect = it.boundsInRoot()
@@ -348,7 +596,7 @@ private fun IntroShowCase(
                     }
                 }*/
 
-                drawRect(
+                /*drawRect(
                     Color.Black.copy(alpha = 0.4f),
                     size = Size(size.width + 40f, size.height + 40f),
                     style = Fill,
@@ -375,7 +623,7 @@ private fun IntroShowCase(
                     style = Stroke(width = 3.dp.value)
                 )
                 drawCircle(Color.White, radius = circleWidth.value.dp.toPx(), center = pathData.last())
-                drawCircle(Color.Gray, radius = circleWidth.value.dp.toPx() - density, center = pathData.last())
+                drawCircle(Color.Gray, radius = circleWidth.value.dp.toPx() - density, center = pathData.last())*/
             }
         }
     }
@@ -389,16 +637,6 @@ private fun IntroShowCase(
         targetRadius = targetRadius,
         updateCoordinates = {
             textCoordinate = it
-            /*if ((it.boundsInRoot().center.y > targetRect.center.y)) {
-                Log.d("TAG", "IntroShowCase: bottom")
-            } else {
-                Log.d("TAG", "IntroShowCase: top")
-            }
-            if ((it.boundsInRoot().center.x > targetRect.center.x)) {
-                Log.d("TAG", "IntroShowCase: Right")
-            } else {
-                Log.d("TAG", "IntroShowCase: Left")
-            }*/
         },
         content = content,
         onSkip = {
@@ -413,8 +651,19 @@ private fun IntroShowCase(
 }
 
 @Composable
-private fun PointerShowCaseView() {
-
+private fun DrawOnCanvas(
+    targets: ShowcaseProperty,
+    pointerInput: suspend PointerInputScope.() -> Unit,
+    content: DrawScope.() -> Unit,
+) {
+    //val targetRect = targets.coordinates.boundsInRoot()
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(targets, pointerInput)
+            .graphicsLayer(alpha = 0.99f),
+        onDraw = content
+    )
 }
 
 /**

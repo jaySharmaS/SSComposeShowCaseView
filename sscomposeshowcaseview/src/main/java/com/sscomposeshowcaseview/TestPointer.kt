@@ -286,9 +286,9 @@ fun TestPointer2() {
     }
 }
 
-private fun pathify(pathData: Array<Offset>): Path {
+fun pathify(pathData: Array<Offset>): Path {
     //val path = Path()
-    //Log.d("TAG", "pathify: ${Arrays.toString(pathData)}")
+    Log.d("TAG", "pathify: ${Arrays.toString(pathData)}")
 
     /*return "M ${pathData.map { p ->
         "${p.x} ${p.y}"
@@ -326,7 +326,7 @@ private fun getPosition(from: Rect, to: Rect): String? {
     return null
 }
 
-private fun getPathData(fromRect: Rect, toRect: Rect): Array<Offset> {
+fun getPathData(fromRect: Rect, toRect: Rect): Array<Offset> {
     return when (getPosition(fromRect, toRect)) {
         "bottom-to-top" -> {
             arrayOf(

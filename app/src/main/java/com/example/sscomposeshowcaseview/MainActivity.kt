@@ -77,10 +77,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            Box(modifier = Modifier.fillMaxSize()) {
+            /*Box(modifier = Modifier.fillMaxSize()) {
                 TestPointer2()
-            }
-            //ShowcaseExample()
+            }*/
+            ShowcaseExample()
         }
     }
 }
@@ -173,12 +173,12 @@ fun UserProfile(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) 
                                 text = "More options",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = Color.Black
                             )
                             Text(
                                 text = "Click here to see options",
                                 fontSize = 14.sp,
-                                color = Color.White
+                                color = Color.Black
                             )
                             Button(onClick = this@ShowcaseProperty.onSkipSequence) {
                                 Text(text = "Skip All")
