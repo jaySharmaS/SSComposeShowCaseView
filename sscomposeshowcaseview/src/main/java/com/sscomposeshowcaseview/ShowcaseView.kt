@@ -87,6 +87,7 @@ fun ShowCaseTarget(
             content = it.content,
             onShowCaseCompleted = {
                 if (++currentTargetIndex >= uniqueTargets.size) {
+                    Log.d("SKIP", "IntroShowCase2: onSkip outer")
                     onShowCaseCompleted()
                     preferences.show(key)
                 }
@@ -95,6 +96,7 @@ fun ShowCaseTarget(
                 currentTargetIndex = uniqueTargets.size
                 onShowCaseCompleted()
                 preferences.show(key)
+                Log.d("SKIP", "IntroShowCase2: onSkipAll outer")
             }
         )
     }
@@ -135,6 +137,7 @@ private fun IntroShowCase2(
             if (isAutomaticShowcase) {
                 timerTask = Timer(true).schedule(targets.showcaseDelay) {
                     onShowCaseCompleted()
+                    Log.d("SKIP", "IntroShowCase2: timer")
                 }
             } else {
                 detectTapGestures { tapOffset ->
@@ -382,10 +385,12 @@ private fun IntroShowCase2(
         onSkip = {
             timerTask?.cancel()
             onShowCaseCompleted()
+            Log.d("SKIP", "IntroShowCase2: onSkip")
         },
         onSkipAll = {
             timerTask?.cancel()
             onSkipAll()
+            Log.d("SKIP", "IntroShowCase2: onSkipAll")
         }
     )
 }

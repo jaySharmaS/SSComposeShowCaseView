@@ -140,7 +140,8 @@ fun UserProfile(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) 
             ) {
                 ShowCaseDescription(
                     title = "Profile",
-                    subTitle = "User Profile with name and picture"
+                    subTitle = "User Profile with name and picture",
+                    onSkip = onSkipShowcase
                 )
             }
         }) {
@@ -210,7 +211,8 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                     ) {
                         ShowCaseDescription(
                             title = "Post Image",
-                            subTitle = "Click here to add comment on post and it has some very long text to test the feature how it works. Hopefully it works as intended nothing complicates. Lets see how it goes."
+                            subTitle = "Click here to add comment on post and it has some very long text to test the feature how it works. Hopefully it works as intended nothing complicates. Lets see how it goes.",
+                            onSkip = onSkipShowcase
                         )
                     }
                 },
@@ -266,7 +268,8 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                                 ) {
                                     ShowCaseDescription(
                                         title = "Comment button",
-                                        subTitle = "Click here to add comment on post and it has some very long text to test the feature how it works. Hopefully it works as intended nothing complicates. Lets see how it goes."
+                                        subTitle = "Click here to add comment on post and it has some very long text to test the feature how it works. Hopefully it works as intended nothing complicates. Lets see how it goes.",
+                                        onSkip = onSkipShowcase
                                     )
                                 }
                             }
@@ -287,7 +290,8 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                                 ) {
                                     ShowCaseDescription(
                                         title = "Share button",
-                                        subTitle = "Click here to Share post with others"
+                                        subTitle = "Click here to Share post with others",
+                                        onSkip = onSkipShowcase
                                     )
                                 }
                             }
@@ -316,7 +320,8 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                                             "Click <i>here</i> to save <b>post</b>",
                                             HtmlCompat.FROM_HTML_MODE_COMPACT
                                         )
-                                        .toAnnotatedString()
+                                        .toAnnotatedString(),
+                                    onSkip = onSkipShowcase
                                 )
                             }
                         }
