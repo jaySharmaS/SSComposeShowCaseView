@@ -86,17 +86,19 @@ fun ShowCaseTarget(
             targets = it, isAutomaticShowcase = isEnableAutoShowCase,
             content = it.content,
             onShowCaseCompleted = {
+                Log.d("SKIP", "IntroShowCase2: onSkip outer if $currentTargetIndex")
                 if (++currentTargetIndex >= uniqueTargets.size) {
-                    Log.d("SKIP", "IntroShowCase2: onSkip outer")
+                    Log.d("SKIP", "IntroShowCase2: onSkip outer $currentTargetIndex")
                     onShowCaseCompleted()
                     preferences.show(key)
                 }
             },
             onSkipAll = {
+                // Test an d resolve current index for skip all
                 currentTargetIndex = uniqueTargets.size
                 onShowCaseCompleted()
                 preferences.show(key)
-                Log.d("SKIP", "IntroShowCase2: onSkipAll outer")
+                Log.d("SKIP", "IntroShowCase2: onSkipAll outer $currentTargetIndex")
             }
         )
     }
@@ -131,13 +133,25 @@ private fun IntroShowCase2(
         outerRadius = getOuterRadius(textRect, targetRect) + targetRadius
     }
 
-    var timerTask: TimerTask? = null
+    //var timerTask: TimerTask? = null
+    var timer: Timer? = null
     val pointerInput : suspend PointerInputScope.() -> Unit = remember(isAutomaticShowcase, targets) {
         {
             if (isAutomaticShowcase) {
-                timerTask = Timer(true).schedule(targets.showcaseDelay) {
-                    onShowCaseCompleted()
+                /*timerTask = Timer(true).schedule(targets.showcaseDelay) {
                     Log.d("SKIP", "IntroShowCase2: timer")
+                    onShowCaseCompleted()
+                }*/
+                timer = Timer(true).also {
+                    it.schedule(
+                        object : TimerTask() {
+                            override fun run() {
+                                Log.d("SKIP", "IntroShowCase2: timer")
+                                onShowCaseCompleted()
+                            }
+                        },
+                        targets.showcaseDelay
+                    )
                 }
             } else {
                 detectTapGestures { tapOffset ->
@@ -383,14 +397,18 @@ private fun IntroShowCase2(
         },
         content = content,
         onSkip = {
-            timerTask?.cancel()
-            onShowCaseCompleted()
             Log.d("SKIP", "IntroShowCase2: onSkip")
+            //timerTask?.cancel()
+            //timerTask?.purge()
+            timer?.cancel()
+            timer?.purge()
+            onShowCaseCompleted()
         },
         onSkipAll = {
-            timerTask?.cancel()
-            onSkipAll()
             Log.d("SKIP", "IntroShowCase2: onSkipAll")
+            timer?.cancel()
+            timer?.purge()
+            onSkipAll()
         }
     )
 }

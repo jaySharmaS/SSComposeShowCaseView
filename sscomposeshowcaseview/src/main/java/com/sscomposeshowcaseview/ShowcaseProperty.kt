@@ -8,6 +8,6 @@ data class ShowcaseProperty(
     val coordinates: LayoutCoordinates,
     val showCaseType: ShowcaseType = ShowcaseType.SIMPLE_ROUNDED,
     val blurOpacity: Float = 0.8f,
-    val showcaseDelay: Long = 2000,
+    val showcaseDelay: Long = 5000,
     val content: @Composable ShowcaseScope.() -> Unit
 )
