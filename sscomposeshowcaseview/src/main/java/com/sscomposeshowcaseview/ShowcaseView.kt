@@ -353,13 +353,6 @@ private fun IntroShowCase2(
                         topLeft = targetRect.topLeft,
                         blendMode = BlendMode.Clear
                     )
-                    drawRect(
-                        Color.White,
-                        size = pointerRect.size,
-                        style = Fill,
-                        topLeft = pointerRect.topLeft,
-                        blendMode = BlendMode.Clear
-                    )
                     drawPath(
                         path = animatedPath.value,
                         color = Color.White,
