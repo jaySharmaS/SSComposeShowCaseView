@@ -23,6 +23,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
@@ -48,7 +49,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.concurrent.schedule
@@ -86,19 +89,15 @@ fun ShowCaseTarget(
             targets = it, isAutomaticShowcase = isEnableAutoShowCase,
             content = it.content,
             onShowCaseCompleted = {
-                Log.d("SKIP", "IntroShowCase2: onSkip outer if $currentTargetIndex")
                 if (++currentTargetIndex >= uniqueTargets.size) {
-                    Log.d("SKIP", "IntroShowCase2: onSkip outer $currentTargetIndex")
                     onShowCaseCompleted()
                     preferences.show(key)
                 }
             },
             onSkipAll = {
-                // Test an d resolve current index for skip all
                 currentTargetIndex = uniqueTargets.size
                 onShowCaseCompleted()
                 preferences.show(key)
-                Log.d("SKIP", "IntroShowCase2: onSkipAll outer $currentTargetIndex")
             }
         )
     }
@@ -133,25 +132,13 @@ private fun IntroShowCase2(
         outerRadius = getOuterRadius(textRect, targetRect) + targetRadius
     }
 
-    //var timerTask: TimerTask? = null
-    var timer: Timer? = null
+    val showcaseDelayScope = rememberCoroutineScope()
     val pointerInput : suspend PointerInputScope.() -> Unit = remember(isAutomaticShowcase, targets) {
         {
             if (isAutomaticShowcase) {
-                /*timerTask = Timer(true).schedule(targets.showcaseDelay) {
-                    Log.d("SKIP", "IntroShowCase2: timer")
+                showcaseDelayScope.launch {
+                    delay(targets.showcaseDelay)
                     onShowCaseCompleted()
-                }*/
-                timer = Timer(true).also {
-                    it.schedule(
-                        object : TimerTask() {
-                            override fun run() {
-                                Log.d("SKIP", "IntroShowCase2: timer")
-                                onShowCaseCompleted()
-                            }
-                        },
-                        targets.showcaseDelay
-                    )
                 }
             } else {
                 detectTapGestures { tapOffset ->
@@ -397,17 +384,11 @@ private fun IntroShowCase2(
         },
         content = content,
         onSkip = {
-            Log.d("SKIP", "IntroShowCase2: onSkip")
-            //timerTask?.cancel()
-            //timerTask?.purge()
-            timer?.cancel()
-            timer?.purge()
+            showcaseDelayScope.cancel()
             onShowCaseCompleted()
         },
         onSkipAll = {
-            Log.d("SKIP", "IntroShowCase2: onSkipAll")
-            timer?.cancel()
-            timer?.purge()
+            showcaseDelayScope.cancel()
             onSkipAll()
         }
     )
