@@ -55,7 +55,6 @@ import kotlinx.coroutines.launch
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.concurrent.schedule
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -75,7 +74,7 @@ fun ShowCaseTarget(
     val preferences = Preferences(context = LocalContext.current)
     val uniqueTargets = targets.values.sortedBy { it.index }
     var currentTargetIndex by remember { mutableStateOf(0) }
-    val currentTarget = if (uniqueTargets.isNotEmpty() && currentTargetIndex < uniqueTargets.size)
+    val currentTarget = if (uniqueTargets.isNotEmpty() && (currentTargetIndex < uniqueTargets.size))
         uniqueTargets[currentTargetIndex]
     else
         null
@@ -776,3 +775,93 @@ private fun getOuterCircleCenter(
 
     return Offset(outerCenterX, outerCenterY)
 }
+
+private fun findContentPosition(
+    anchor: Int,
+
+) {
+
+}
+
+private fun tryFitVertical(
+    outParams: Param,
+    yOffset: Int,
+    height: Int,
+    anchorHeight: Int,
+    drawingLocationY: Int,
+    screenLocationY: Int,
+    displayFrameTop: Int,
+    displayFrameBottom : Int,
+    allowResize: Boolean
+): Boolean {
+    val winOffsetY = screenLocationY - drawingLocationY;
+    val anchorTopInScreen = outParams.y + winOffsetY;
+    val spaceBelow = displayFrameBottom - anchorTopInScreen;
+    if (anchorTopInScreen >= displayFrameTop && height <= spaceBelow) {
+        return true
+    }
+
+    val spaceAbove = anchorTopInScreen - anchorHeight - displayFrameTop
+    if (height <= spaceAbove) {
+        // Move everything up.
+        /*if (false) {
+            yOffset += anchorHeight
+        }*/
+        outParams.y = drawingLocationY - height + yOffset
+
+        return true
+    }
+
+    if (positionInDisplayVertical(outParams, height, drawingLocationY, screenLocationY,
+            displayFrameTop, displayFrameBottom, allowResize)) {
+        return true
+    }
+
+    return false
+}
+
+private fun positionInDisplayVertical(
+    outParam: Param,
+    height: Int,
+    drawingLocationY: Int,
+    screenLocationY: Int,
+    displayFrameTop: Int,
+    displayFrameBottom: Int,
+    canResize: Boolean
+) : Boolean {
+    var fitsInDisplay = true
+
+    val winOffsetY = screenLocationY - drawingLocationY
+    outParam.y += winOffsetY
+    outParam.height = height
+
+    val bottom = outParam.y + height
+    if (bottom > displayFrameBottom) {
+        // The popup is too far down, move it back in.
+        outParam.y -= bottom - displayFrameBottom
+    }
+
+    if (outParam.y < displayFrameTop) {
+        // The popup is too far up, move it back in and clip if
+        // it's still too large.
+        outParam.y = displayFrameTop
+
+        val displayFrameHeight = displayFrameBottom - displayFrameTop
+        if (canResize && height > displayFrameHeight) {
+            outParam.height = displayFrameHeight
+        } else {
+            fitsInDisplay = false
+        }
+    }
+
+    outParam.y -= winOffsetY
+
+    return fitsInDisplay
+}
+
+data class Param(
+    var x: Int = 0,
+    var y: Int = 0,
+    var height: Int = 0,
+    var width: Int = 0,
+)
