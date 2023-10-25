@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.DropdownMenu
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -35,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -43,11 +45,13 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -674,6 +678,7 @@ private fun ShowText(
     currentTarget: ShowcaseProperty,
     targetRect: Rect,
     targetRadius: Float,
+    contentMargin: Dp,
     updateCoordinates: (LayoutCoordinates) -> Unit,
     content: @Composable ShowcaseScope.() -> Unit,
     onSkip: () -> Unit,
@@ -685,6 +690,8 @@ private fun ShowText(
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.toFloat()
 
+    var contentRect by remember { mutableStateOf(Rect.Zero) }
+    var windowRect by remember { mutableStateOf(Rect.Zero) }
     Column(modifier = Modifier
         .offset(
             x = with(LocalDensity.current) { txtOffsetX.toDp() },
@@ -692,6 +699,10 @@ private fun ShowText(
         )
         .onGloballyPositioned {
             updateCoordinates(it)
+            //val contentHeight = it.size.height
+            contentRect = it.boundsInRoot()
+            windowRect = it.parentLayoutCoordinates?.boundsInRoot() ?: Rect.Zero
+            val targetRectWithPadding = targetRect.copy()
             val textHeight = it.size.height
             val possibleTop =
                 if (currentTarget.showCaseType == ShowcaseType.ANIMATED_ROUNDED) {
@@ -731,6 +742,14 @@ private fun ShowText(
             ShowcaseScopeImpl(this, onSkip, onSkipAll).content()
         }
     }
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize(),
+        onDraw = {
+            drawRect(Color.Red, topLeft = contentRect.topLeft, size = contentRect.size, style = Stroke(width = 4f))
+            drawRect(Color.Red, topLeft = windowRect.topLeft, size = windowRect.size, style = Stroke(width = 4f))
+        }
+    )
 }
 
 private fun getOuterRadius(textRect: Rect, targetRect: Rect): Float {
