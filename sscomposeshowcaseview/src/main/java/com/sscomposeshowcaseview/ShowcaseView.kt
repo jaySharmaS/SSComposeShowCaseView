@@ -52,6 +52,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -678,7 +679,7 @@ private fun ShowText(
     currentTarget: ShowcaseProperty,
     targetRect: Rect,
     targetRadius: Float,
-    contentMargin: Dp,
+    contentMargin: Dp = 0.dp,
     updateCoordinates: (LayoutCoordinates) -> Unit,
     content: @Composable ShowcaseScope.() -> Unit,
     onSkip: () -> Unit,
@@ -690,7 +691,9 @@ private fun ShowText(
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.toFloat()
 
-    var contentRect by remember { mutableStateOf(Rect.Zero) }
+    val x = targetRect.right + 50
+    val y = targetRect.bottom + 50
+    var contentRect by remember { mutableStateOf(targetRect.translate(x, y)) }
     var windowRect by remember { mutableStateOf(Rect.Zero) }
     Column(modifier = Modifier
         .offset(
@@ -700,7 +703,7 @@ private fun ShowText(
         .onGloballyPositioned {
             updateCoordinates(it)
             //val contentHeight = it.size.height
-            contentRect = it.boundsInRoot()
+            //contentRect = it.boundsInRoot()
             windowRect = it.parentLayoutCoordinates?.boundsInRoot() ?: Rect.Zero
             val targetRectWithPadding = targetRect.copy()
             val textHeight = it.size.height
@@ -742,12 +745,14 @@ private fun ShowText(
             ShowcaseScopeImpl(this, onSkip, onSkipAll).content()
         }
     }
+    //contentRect = contentRect.translate(targetRect.bottomCenter)
     Canvas(
         modifier = Modifier
             .fillMaxSize(),
         onDraw = {
             drawRect(Color.Red, topLeft = contentRect.topLeft, size = contentRect.size, style = Stroke(width = 4f))
             drawRect(Color.Red, topLeft = windowRect.topLeft, size = windowRect.size, style = Stroke(width = 4f))
+            drawRect(Color.Red, topLeft = targetRect.topLeft, size = targetRect.size, style = Stroke(width = 4f))
         }
     )
 }

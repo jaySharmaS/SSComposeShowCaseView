@@ -10,10 +10,14 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -22,8 +26,11 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -38,6 +45,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -417,9 +426,110 @@ fun getPathData(fromRect: Rect, toRect: Rect): Array<Offset> {
 fun PointerTest2Preview() {
     Surface {
         Box(modifier = Modifier.fillMaxSize()) {
-            TestPointer2()
+            TestOverlap(content =  {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "More options",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = "Click here to see options",
+                        fontSize = 14.sp,
+                        color = Color.Black
+                    )
+                    Button(onClick = { }) {
+                        Text(text = "Skip All")
+                    }
+                }
+            })
         }
     }
+}
+
+@Composable
+fun TestOverlap(
+    content: @Composable ShowcaseScope.() -> Unit,
+    onSkip: () -> Unit = { },
+    onSkipAll: () -> Unit = { }
+) {
+
+    val targetRect = Rect(471f, 1994f, 552f, 2075f)
+
+    var txtOffsetY by remember { mutableStateOf(0f) }
+    var txtOffsetX by remember { mutableStateOf(0f) }
+    var txtRightOffSet by remember { mutableStateOf(0f) }
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.toFloat()
+
+    val x = targetRect.right + 50
+    val y = targetRect.bottom + 50
+    var contentRect by remember { mutableStateOf(targetRect.translate(0f, 50f)) }
+    var windowRect by remember { mutableStateOf(Rect.Zero) }
+
+    Column(modifier = Modifier
+        .offset(
+            x = with(LocalDensity.current) { txtOffsetX.toDp() },
+            y = with(LocalDensity.current) { txtOffsetY.toDp() }
+        )
+        .onGloballyPositioned {
+            //updateCoordinates(it)
+            //val contentHeight = it.size.height
+            //contentRect = it.boundsInRoot()
+            /*windowRect = it.parentLayoutCoordinates?.boundsInRoot() ?: Rect.Zero
+            val targetRectWithPadding = targetRect.copy()
+            val textHeight = it.size.height
+            val possibleTop =
+                if (currentTarget.showCaseType == ShowcaseType.ANIMATED_ROUNDED) {
+                    targetRect.center.y - targetRadius - textHeight
+                } else {
+                    targetRect.center.y - textHeight + 200
+                }
+            val possibleLeft = targetRect.topLeft.x
+            txtOffsetY = if (possibleTop > 0) {
+                possibleTop
+            } else {
+                targetRect.center.y + targetRadius - 140
+            }
+            txtRightOffSet = it.boundsInRoot().topRight.x
+            txtOffsetX = it.boundsInRoot().topRight.x - it.size.width
+            txtOffsetX = if (possibleLeft >= screenWidth / 2) {
+                screenWidth / 2 + targetRadius
+            } else {
+                possibleLeft
+            }
+            txtRightOffSet += targetRadius*/
+        }
+        .padding(2.dp)
+    ) {
+
+        BoxWithConstraints(
+            modifier = Modifier
+                .width(
+                    if (txtRightOffSet > screenWidth) {
+                        configuration.screenWidthDp.dp / 2 + 40.dp
+                    } else {
+                        configuration.screenWidthDp.dp
+                    }
+                )
+                .background(Color.White, RoundedCornerShape(5))
+        ) {
+            ShowcaseScopeImpl(this, onSkip, onSkipAll).content()
+        }
+    }
+    //contentRect = contentRect.translate(targetRect.bottomCenter)
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize(),
+        onDraw = {
+            drawRect(Color.Red, topLeft = contentRect.topLeft, size = contentRect.size, style = Stroke(width = 4f))
+            drawRect(Color.Red, topLeft = windowRect.topLeft, size = windowRect.size, style = Stroke(width = 4f))
+            drawRect(Color.Red, topLeft = targetRect.topLeft, size = targetRect.size, style = Stroke(width = 4f))
+        }
+    )
 }
 
 private const val LINE_OFFSET = 9
