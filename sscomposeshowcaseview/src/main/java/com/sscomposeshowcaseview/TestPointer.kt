@@ -458,6 +458,7 @@ fun TestOverlap(
 ) {
 
     val targetRect = Rect(471f, 1994f, 552f, 2075f)
+    val sampleRect = Rect(471f, 1994f, 552f, 2080f)
 
     var txtOffsetY by remember { mutableStateOf(0f) }
     var txtOffsetX by remember { mutableStateOf(0f) }
@@ -467,15 +468,39 @@ fun TestOverlap(
 
     val x = targetRect.right + 50
     val y = targetRect.bottom + 50
-    var contentRect by remember { mutableStateOf(targetRect.translate(0f, 50f)) }
+    //var contentRect by remember { mutableStateOf(targetRect.translate(Offset(50f, 0f))) }
     var windowRect by remember { mutableStateOf(Rect.Zero) }
+    var contentSize by remember { mutableStateOf(Size.Zero) }
+    val contentRect by remember(targetRect, contentSize) {
+        mutableStateOf(Rect(targetRect.topLeft, contentSize))
+    }
+
+    val (ox, oy) = remember(windowRect, targetRect, contentRect) {
+        val contentHeight = contentRect.height
+        val contentWidth = contentRect.height
+
+        val availableTop = windowRect.top - targetRect.top
+        val availableBottom = windowRect.bottom - targetRect.bottom
+        val availableLeft = windowRect.left - targetRect.left
+        val availableRight = windowRect.right - targetRect.right
+
+        if (availableTop > availableBottom) {
+            // We got more space at top
+
+        } else {
+            // We got more space at bottom
+        }
+        mutableStateOf(Pair(1, 1))
+    }
 
     Column(modifier = Modifier
+        .background(Color.Black)
         .offset(
             x = with(LocalDensity.current) { txtOffsetX.toDp() },
             y = with(LocalDensity.current) { txtOffsetY.toDp() }
         )
         .onGloballyPositioned {
+            windowRect = it.parentLayoutCoordinates?.boundsInRoot() ?: Rect.Zero
             //updateCoordinates(it)
             //val contentHeight = it.size.height
             //contentRect = it.boundsInRoot()
@@ -509,14 +534,17 @@ fun TestOverlap(
         BoxWithConstraints(
             modifier = Modifier
                 .width(
-                    if (txtRightOffSet > screenWidth) {
+                    /*if (txtRightOffSet > screenWidth) {
                         configuration.screenWidthDp.dp / 2 + 40.dp
                     } else {
                         configuration.screenWidthDp.dp
-                    }
+                    }*/
+                    configuration.screenWidthDp.dp / 2 + 40.dp
                 )
                 .background(Color.White, RoundedCornerShape(5))
         ) {
+            //contentSize = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
+            contentSize = Size(500f, 300f)
             ShowcaseScopeImpl(this, onSkip, onSkipAll).content()
         }
     }
