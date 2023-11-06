@@ -50,9 +50,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Arrays
+import kotlin.math.absoluteValue
 
 @Composable
 fun PointerTest(targets: SnapshotStateMap<String, ShowcaseProperty>) {
@@ -479,28 +481,29 @@ fun TestOverlap(
         val contentHeight = contentRect.height
         val contentWidth = contentRect.height
 
-        val availableTop = windowRect.top - targetRect.top
-        val availableBottom = windowRect.bottom - targetRect.bottom
+        val availableTop = (windowRect.top - targetRect.top).absoluteValue
+        val availableBottom = (windowRect.bottom - targetRect.bottom).absoluteValue
         val availableLeft = windowRect.left - targetRect.left
         val availableRight = windowRect.right - targetRect.right
 
         if (availableTop > availableBottom) {
             // We got more space at top
-
+            val rect = contentRect.translate(0f, -contentHeight)
+            Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
         } else {
             // We got more space at bottom
+            val rect = contentRect.translate(0f, targetRect.height)
+            Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
         }
-        mutableStateOf(Pair(1, 1))
     }
 
     Column(modifier = Modifier
-        .background(Color.Black)
-        .offset(
-            x = with(LocalDensity.current) { txtOffsetX.toDp() },
-            y = with(LocalDensity.current) { txtOffsetY.toDp() }
-        )
+        .offset {
+            IntOffset(ox, oy)
+        }
         .onGloballyPositioned {
             windowRect = it.parentLayoutCoordinates?.boundsInRoot() ?: Rect.Zero
+            contentSize = it.boundsInRoot().size//Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
             //updateCoordinates(it)
             //val contentHeight = it.size.height
             //contentRect = it.boundsInRoot()
@@ -544,7 +547,7 @@ fun TestOverlap(
                 .background(Color.White, RoundedCornerShape(5))
         ) {
             //contentSize = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
-            contentSize = Size(500f, 300f)
+            //contentSize = Size(500f, 300f)
             ShowcaseScopeImpl(this, onSkip, onSkipAll).content()
         }
     }
@@ -559,6 +562,15 @@ fun TestOverlap(
         }
     )
 }
+
+/**
+ *
+ * Position Notes:
+ * ------ Bottom
+ *      if target is left or right to center
+ *         * Left -> then
+ *
+ */
 
 private const val LINE_OFFSET = 9
 private const val POS_OFFSET = 40

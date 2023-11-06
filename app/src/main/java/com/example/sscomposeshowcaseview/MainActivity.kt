@@ -68,6 +68,7 @@ import androidx.core.text.HtmlCompat
 import com.sscomposeshowcaseview.ShowCaseTarget
 import com.sscomposeshowcaseview.ShowcaseProperty
 import com.sscomposeshowcaseview.ShowcaseType
+import com.sscomposeshowcaseview.TestOverlap
 import com.sscomposeshowcaseview.TestPointer2
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -80,7 +81,27 @@ class MainActivity : ComponentActivity() {
             /*Box(modifier = Modifier.fillMaxSize()) {
                 TestPointer2()
             }*/
-            ShowcaseExample()
+            //ShowcaseExample()
+            TestOverlap(content =  {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "More options",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = "Click here to see options",
+                        fontSize = 14.sp,
+                        color = Color.Black
+                    )
+                    Button(onClick = { }) {
+                        Text(text = "Skip All")
+                    }
+                }
+            })
         }
     }
 }
