@@ -3,8 +3,6 @@ package com.sscomposeshowcaseview
 import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -46,8 +44,6 @@ import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
@@ -439,7 +435,7 @@ fun PointerTest2Preview() {
                         color = Color.Black
                     )
                     Text(
-                        text = "Click here to see options",
+                        text = "Click here to see options let see if it can",
                         fontSize = 14.sp,
                         color = Color.Black
                     )
@@ -478,23 +474,7 @@ fun TestOverlap(
     }
 
     val (ox, oy) = remember(windowRect, targetRect, contentRect) {
-        val contentHeight = contentRect.height
-        val contentWidth = contentRect.height
-
-        val availableTop = (windowRect.top - targetRect.top).absoluteValue
-        val availableBottom = (windowRect.bottom - targetRect.bottom).absoluteValue
-        val availableLeft = windowRect.left - targetRect.left
-        val availableRight = windowRect.right - targetRect.right
-
-        if (availableTop > availableBottom) {
-            // We got more space at top
-            val rect = contentRect.translate(0f, -contentHeight)
-            Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
-        } else {
-            // We got more space at bottom
-            val rect = contentRect.translate(0f, targetRect.height)
-            Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
-        }
+        getContentPlacement(windowRect, targetRect, contentRect)
     }
 
     Column(modifier = Modifier
@@ -561,6 +541,27 @@ fun TestOverlap(
             drawRect(Color.Red, topLeft = targetRect.topLeft, size = targetRect.size, style = Stroke(width = 4f))
         }
     )
+}
+
+private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect: Rect): Pair<Int, Int> {
+    val contentHeight = contentRect.height
+    val contentWidth = contentRect.width
+    val availableWidth = contentRect.width
+
+    val availableTop = (windowRect.top - targetRect.top).absoluteValue
+    val availableBottom = (windowRect.bottom - targetRect.bottom).absoluteValue
+    val availableLeft = windowRect.left - targetRect.left
+    val availableRight = windowRect.right - targetRect.right
+
+    return if (availableTop > availableBottom) {
+        // We got more space at top
+        val rect = contentRect.translate(0f, -contentHeight)
+        Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
+    } else {
+        // We got more space at bottom
+        val rect = contentRect.translate(0f, targetRect.height)
+        Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
+    }
 }
 
 /**
