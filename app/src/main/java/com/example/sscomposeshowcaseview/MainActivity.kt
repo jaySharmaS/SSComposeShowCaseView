@@ -81,27 +81,29 @@ class MainActivity : ComponentActivity() {
             /*Box(modifier = Modifier.fillMaxSize()) {
                 TestPointer2()
             }*/
-            //ShowcaseExample()
-            TestOverlap(content =  {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "More options",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                    Text(
-                        text = "Click here to see options",
-                        fontSize = 14.sp,
-                        color = Color.Black
-                    )
-                    Button(onClick = { }) {
-                        Text(text = "Skip All")
+            ShowcaseExample()
+            /*Box(modifier = Modifier.fillMaxSize()) {
+                TestOverlap(content =  {
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "More options",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = "Click here to see options",
+                            fontSize = 14.sp,
+                            color = Color.Black
+                        )
+                        Button(onClick = { }) {
+                            Text(text = "Skip All")
+                        }
                     }
-                }
-            })
+                })
+            }*/
         }
     }
 }

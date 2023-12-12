@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.Surface
@@ -50,6 +52,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Arrays
+import kotlin.math.abs
 import kotlin.math.absoluteValue
 
 @Composable
@@ -483,7 +486,8 @@ fun TestOverlap(
         }
         .onGloballyPositioned {
             windowRect = it.parentLayoutCoordinates?.boundsInRoot() ?: Rect.Zero
-            contentSize = it.boundsInRoot().size//Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
+            contentSize =
+                it.boundsInRoot().size//Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
             //updateCoordinates(it)
             //val contentHeight = it.size.height
             //contentRect = it.boundsInRoot()
@@ -516,14 +520,16 @@ fun TestOverlap(
 
         BoxWithConstraints(
             modifier = Modifier
-                .width(
+                //.wrapContentWidth()
+                //.width(
                     /*if (txtRightOffSet > screenWidth) {
                         configuration.screenWidthDp.dp / 2 + 40.dp
                     } else {
                         configuration.screenWidthDp.dp
                     }*/
-                    configuration.screenWidthDp.dp / 2 + 40.dp
-                )
+
+                //)
+                .widthIn(max = configuration.screenWidthDp.dp / 2 + 40.dp)
                 .background(Color.White, RoundedCornerShape(5))
         ) {
             //contentSize = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
@@ -546,20 +552,36 @@ fun TestOverlap(
 private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect: Rect): Pair<Int, Int> {
     val contentHeight = contentRect.height
     val contentWidth = contentRect.width
-    val availableWidth = contentRect.width
+    val availableWidth = windowRect.width - contentRect.width
 
     val availableTop = (windowRect.top - targetRect.top).absoluteValue
     val availableBottom = (windowRect.bottom - targetRect.bottom).absoluteValue
     val availableLeft = windowRect.left - targetRect.left
     val availableRight = windowRect.right - targetRect.right
 
-    return if (availableTop > availableBottom) {
-        // We got more space at top
-        val rect = contentRect.translate(0f, -contentHeight)
+    val contentHalf = contentWidth/2
+    val totalOneTenthSapce = windowRect.width/10
+    //println("Space Available : Half $contentWidth Left ${targetRect.left}")
+    println("Space Available : Top $availableBottom Top $contentHeight")
+    // Check if targets are in edges
+    if (totalOneTenthSapce > targetRect.left) {
+
+    } else if (totalOneTenthSapce > targetRect.right) {
+
+    }
+    val x = if (abs(contentHalf) <= abs(targetRect.left)) {
+        -contentHalf
+    } else {
+        0f
+    }
+
+    return if (availableBottom > contentHeight) {
+        // We got more space at Bottom
+        val rect = contentRect.translate(x, targetRect.height)
         Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
     } else {
-        // We got more space at bottom
-        val rect = contentRect.translate(0f, targetRect.height)
+        // We got more space at Top
+        val rect = contentRect.translate(x, -contentHeight)
         Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
     }
 }

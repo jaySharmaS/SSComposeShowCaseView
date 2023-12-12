@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.DropdownMenu
 import androidx.compose.runtime.Composable
@@ -60,6 +61,8 @@ import kotlinx.coroutines.launch
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.concurrent.schedule
+import kotlin.math.abs
+import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -372,13 +375,9 @@ private fun IntroShowCase2(
     }
 
     // Draw content
-    ShowText(
-        currentTarget = targets,
+    ShowText2(
         targetRect = targetRect,
-        targetRadius = targetRadius,
-        updateCoordinates = {
-            textCoordinate = it
-        },
+        updateCoordinates = { textCoordinate = it },
         content = content,
         onSkip = {
             showcaseDelayScope.cancel()
@@ -755,6 +754,89 @@ private fun ShowText(
             drawRect(Color.Red, topLeft = targetRect.topLeft, size = targetRect.size, style = Stroke(width = 4f))
         }
     )
+}
+
+@Composable
+fun ShowText2(
+    targetRect: Rect,
+    updateCoordinates: (LayoutCoordinates) -> Unit,
+    content: @Composable ShowcaseScope.() -> Unit,
+    onSkip: () -> Unit = { },
+    onSkipAll: () -> Unit = { }
+) {
+
+    //val targetRect = Rect(471f, 1994f, 552f, 2075f)
+    val sampleRect = Rect(471f, 1994f, 552f, 2080f)
+
+    var txtOffsetY by remember { mutableStateOf(0f) }
+    var txtOffsetX by remember { mutableStateOf(0f) }
+    var txtRightOffSet by remember { mutableStateOf(0f) }
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.toFloat()
+
+    val x = targetRect.right + 50
+    val y = targetRect.bottom + 50
+    //var contentRect by remember { mutableStateOf(targetRect.translate(Offset(50f, 0f))) }
+    var windowRect by remember { mutableStateOf(Rect.Zero) }
+    var contentSize by remember { mutableStateOf(Size.Zero) }
+    val contentRect by remember(targetRect, contentSize) {
+        mutableStateOf(Rect(targetRect.topLeft, contentSize))
+    }
+
+    val (ox, oy) = remember(windowRect, targetRect, contentRect) {
+        getContentPlacement(windowRect, targetRect, contentRect)
+    }
+
+    Column(modifier = Modifier
+        .offset {
+            IntOffset(ox, oy)
+        }
+        .onGloballyPositioned {
+            windowRect = it.parentLayoutCoordinates?.boundsInRoot() ?: Rect.Zero
+            contentSize = it.boundsInRoot().size
+            updateCoordinates(it)
+        }
+        .padding(2.dp)
+    ) {
+
+        BoxWithConstraints(
+            modifier = Modifier
+                .widthIn(max = configuration.screenWidthDp.dp / 2 + 40.dp)
+                .background(Color.White, RoundedCornerShape(5))
+        ) {
+            ShowcaseScopeImpl(this, onSkip, onSkipAll).content()
+        }
+    }
+}
+
+private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect: Rect): Pair<Int, Int> {
+    val contentHeight = contentRect.height
+    val contentWidth = contentRect.width
+    val availableWidth = windowRect.width - contentRect.width
+
+    val availableTop = (windowRect.top - targetRect.top).absoluteValue
+    val availableBottom = (windowRect.bottom - targetRect.bottom).absoluteValue
+    val availableLeft = windowRect.left - targetRect.left
+    val availableRight = windowRect.right - targetRect.right
+
+    val contentHalf = contentWidth/2
+    //println("Space Available : Half $contentWidth Left ${targetRect.left}")
+    //println("Space Available : Top $availableBottom Top $contentHeight")
+    val x = if (abs(contentHalf) <= abs(targetRect.left)) {
+        -contentHalf
+    } else {
+        0f
+    }
+
+    return if (availableBottom > contentHeight) {
+        // We got more space at Bottom
+        val rect = contentRect.translate(x, targetRect.height)
+        Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
+    } else {
+        // We got more space at Top
+        val rect = contentRect.translate(x, -contentHeight)
+        Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
+    }
 }
 
 private fun getOuterRadius(textRect: Rect, targetRect: Rect): Float {
