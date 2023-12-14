@@ -549,7 +549,7 @@ fun TestOverlap(
     )
 }
 
-private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect: Rect): Pair<Int, Int> {
+private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect: Rect, padding: Int = 0): Pair<Int, Int> {
     val contentHeight = contentRect.height
     val contentWidth = contentRect.width
     val availableWidth = windowRect.width - contentRect.width
@@ -564,7 +564,65 @@ private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect:
     //println("Space Available : Half $contentWidth Left ${targetRect.left}")
     println("Space Available : Top $availableBottom Top $contentHeight")
     // Check if targets are in edges
-    if (totalOneTenthSapce > targetRect.left) {
+    val targetCenter = targetRect.center
+
+    val availableTopNew = (windowRect.topCenter - targetRect.topCenter).getDistance() - padding
+    val availableBottomNew = (windowRect.bottomCenter - targetRect.bottomCenter).getDistance() - padding
+    val isTopInDefinedBoundary = ((availableTopNew / windowRect.height)*100) > 50
+    val isBottomInDefinedBoundary = ((availableBottomNew / windowRect.height)*100) > 50
+    println("Available Top $availableTopNew Top Defined Boundary $isTopInDefinedBoundary")
+    println("Available Bottom $availableBottomNew Bottom Defined Boundary $isBottomInDefinedBoundary")
+
+    val isContentHeightAvailableInTop = if (isTopInDefinedBoundary) {
+        availableTopNew > contentHeight
+    } else {
+        false
+    }
+
+    val yPos = if (isContentHeightAvailableInTop) {
+        // Place Y in top direction
+        -(targetRect.height + padding)
+    } else {
+        // Place Y in bottom direction
+        (targetRect.height + padding)
+    }
+
+    val availableLeftNew = (windowRect.centerLeft - targetRect.centerLeft).getDistance() - padding
+    val availableRightNew = (windowRect.centerRight - targetRect.centerRight).getDistance() - padding
+    val isLeftInDefinedBoundary = ((availableLeftNew / windowRect.width)*100) > 70
+    val isRightInDefinedBoundary = ((availableRightNew / windowRect.width)*100) > 70
+    println("Available Left $availableLeftNew Left Defined Boundary $isLeftInDefinedBoundary")
+    println("Available Right $availableRightNew Right Defined Boundary $isRightInDefinedBoundary")
+
+    val isContentWidthAvailableInLeft = if (isLeftInDefinedBoundary) {
+        availableLeftNew > contentWidth
+    } else {
+        false
+    }
+
+    val isContentWidthAvailableInRight = if (isRightInDefinedBoundary) {
+        availableRightNew > contentWidth
+    } else {
+        false
+    }
+
+    println("isContentWidthAvailableInLeft $isContentWidthAvailableInLeft")
+    println("isContentWidthAvailableInRight $isContentWidthAvailableInRight")
+
+    val xPos = if (isLeftInDefinedBoundary && isRightInDefinedBoundary) {
+        // Show in center
+        -contentHalf
+    } else if (isLeftInDefinedBoundary) {
+        // Show in left
+        (contentWidth + padding)
+    } else if (isRightInDefinedBoundary) {
+        // Show in right
+        (targetRect.width + padding)
+    } else {
+        0f
+    }
+
+    /*if (totalOneTenthSapce > targetRect.left) {
 
     } else if (totalOneTenthSapce > targetRect.right) {
 
@@ -573,9 +631,13 @@ private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect:
         -contentHalf
     } else {
         0f
-    }
+    }*/
 
-    return if (availableBottom > contentHeight) {
+    val rect = contentRect.translate(xPos, yPos)
+    return Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
+
+
+    /*return if (availableBottom > contentHeight) {
         // We got more space at Bottom
         val rect = contentRect.translate(x, targetRect.height)
         Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
@@ -583,7 +645,7 @@ private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect:
         // We got more space at Top
         val rect = contentRect.translate(x, -contentHeight)
         Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
-    }
+    }*/
 }
 
 /**

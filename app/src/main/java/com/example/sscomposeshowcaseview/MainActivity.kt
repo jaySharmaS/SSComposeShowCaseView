@@ -81,8 +81,8 @@ class MainActivity : ComponentActivity() {
             /*Box(modifier = Modifier.fillMaxSize()) {
                 TestPointer2()
             }*/
-            ShowcaseExample()
-            /*Box(modifier = Modifier.fillMaxSize()) {
+            //ShowcaseExample()
+            Box(modifier = Modifier.fillMaxSize()) {
                 TestOverlap(content =  {
                     Column(
                         modifier = Modifier.fillMaxWidth()
@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 })
-            }*/
+            }
         }
     }
 }
