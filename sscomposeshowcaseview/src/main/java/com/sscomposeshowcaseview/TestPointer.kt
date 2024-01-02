@@ -460,7 +460,8 @@ fun TestOverlap(
     onSkipAll: () -> Unit = { }
 ) {
 
-    val targetRect = Rect(200f, 200f, 1300f, 600f)
+    //val targetRect = Rect(200f, 200f, 1300f, 600f)
+    val targetRect = Rect(200f, 200f, 1300f, 2800f)
     //val targetRect = Rect(471f, 1994f, 552f, 2080f)
     //val targetRect = Rect(471f, 1994f, 552f, 2080f)
     val sampleRect = Rect(471f, 1994f, 552f, 2080f)
@@ -510,6 +511,7 @@ fun TestOverlap(
                 val offset = getContentPlacement2(
                     windowRect, targetRect, contentRect
                 )
+                println("Offset $offset")
                 placeable.place(
                     IntOffset(offset.x.toInt(), offset.y.toInt())
                 )
@@ -594,7 +596,7 @@ private fun getContentPlacement2(windowRect: Rect, targetRect: Rect, contentRect
     val availableBottom = (windowRect.bottomCenter - targetRect.bottomCenter).getDistance() - padding
 
     val movableHeight = contentHeight + padding
-    val canBePlacedOutsideTarget = availableTop > movableHeight && availableBottom > movableHeight
+    val canBePlacedOutsideTarget = availableTop > movableHeight || availableBottom > movableHeight
 
     val yPos = if (canBePlacedOutsideTarget) {
         val availableTopInPercent = ((availableTop / totalHeight)*100)
