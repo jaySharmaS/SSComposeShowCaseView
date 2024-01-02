@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -458,7 +460,9 @@ fun TestOverlap(
     onSkipAll: () -> Unit = { }
 ) {
 
-    val targetRect = Rect(471f, 1994f, 552f, 2075f)
+    val targetRect = Rect(200f, 200f, 1300f, 600f)
+    //val targetRect = Rect(471f, 1994f, 552f, 2080f)
+    //val targetRect = Rect(471f, 1994f, 552f, 2080f)
     val sampleRect = Rect(471f, 1994f, 552f, 2080f)
 
     var txtOffsetY by remember { mutableStateOf(0f) }
@@ -470,24 +474,54 @@ fun TestOverlap(
     val x = targetRect.right + 50
     val y = targetRect.bottom + 50
     //var contentRect by remember { mutableStateOf(targetRect.translate(Offset(50f, 0f))) }
-    var windowRect by remember { mutableStateOf(Rect.Zero) }
+    /*var windowRect by remember { mutableStateOf(Rect.Zero) }
     var contentSize by remember { mutableStateOf(Size.Zero) }
     val contentRect by remember(targetRect, contentSize) {
         mutableStateOf(Rect(targetRect.topLeft, contentSize))
-    }
+    }*/
 
-    val (ox, oy) = remember(windowRect, targetRect, contentRect) {
-        getContentPlacement(windowRect, targetRect, contentRect)
-    }
+    /*val placement = remember(windowRect, targetRect, contentRect) {
+        println("Called Placement")
+        val offset = getContentPlacement2(windowRect, targetRect, contentRect)
+        println("Called Placement $offset")
+        IntOffset(offset.x.toInt(), offset.y.toInt())
+    }*/
+
+    /*val modifier = remember(placement) {
+        println("Called Modifier")
+        Modifier.offset { placement }
+    }*/
 
     Column(modifier = Modifier
-        .offset {
-            IntOffset(ox, oy)
+        .layout { measurable, constraints ->
+            //measurable
+            val windowRect = Rect(
+                offset = Offset.Zero,
+                size = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
+            )
+            val placeable = measurable.measure(constraints)
+            val contentRect = Rect(
+                targetRect.topLeft,
+                size = Size(placeable.width.toFloat(), placeable.height.toFloat())
+            )
+            println("Constraints ===  ${constraints.maxHeight} ${constraints.maxWidth}")
+            println("Pleaceable === ${placeable.width} ${placeable.height}")
+            layout(placeable.width, placeable.height) {
+                val offset = getContentPlacement2(
+                    windowRect, targetRect, contentRect
+                )
+                placeable.place(
+                    IntOffset(offset.x.toInt(), offset.y.toInt())
+                )
+                //  placeable.placeRelative(x.roundToPx(), y.roundToPx())
+                //placeable.place(IntOffset(it.offset.x.roundToInt(), it.offset.y.roundToInt()))
+                //placeable.place()
+            }
         }
-        .onGloballyPositioned {
-            windowRect = it.parentLayoutCoordinates?.boundsInRoot() ?: Rect.Zero
-            contentSize =
-                it.boundsInRoot().size//Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
+        //.onGloballyPositioned {
+          //  windowRect = it.parentLayoutCoordinates?.boundsInRoot() ?: Rect.Zero
+            //contentSize =
+              //  it.boundsInRoot().size//Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
             //updateCoordinates(it)
             //val contentHeight = it.size.height
             //contentRect = it.boundsInRoot()
@@ -514,7 +548,7 @@ fun TestOverlap(
                 possibleLeft
             }
             txtRightOffSet += targetRadius*/
-        }
+        //}
         .padding(2.dp)
     ) {
 
@@ -522,7 +556,7 @@ fun TestOverlap(
             modifier = Modifier
                 //.wrapContentWidth()
                 //.width(
-                    /*if (txtRightOffSet > screenWidth) {
+                /*if (txtRightOffSet > screenWidth) {
                         configuration.screenWidthDp.dp / 2 + 40.dp
                     } else {
                         configuration.screenWidthDp.dp
@@ -531,6 +565,7 @@ fun TestOverlap(
                 //)
                 .widthIn(max = configuration.screenWidthDp.dp / 2 + 40.dp)
                 .background(Color.White, RoundedCornerShape(5))
+                .border(1.dp, Color.Black)
         ) {
             //contentSize = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
             //contentSize = Size(500f, 300f)
@@ -542,11 +577,79 @@ fun TestOverlap(
         modifier = Modifier
             .fillMaxSize(),
         onDraw = {
-            drawRect(Color.Red, topLeft = contentRect.topLeft, size = contentRect.size, style = Stroke(width = 4f))
-            drawRect(Color.Red, topLeft = windowRect.topLeft, size = windowRect.size, style = Stroke(width = 4f))
+            //drawRect(Color.Red, topLeft = contentRect.topLeft, size = contentRect.size, style = Stroke(width = 4f))
+            //drawRect(Color.Red, topLeft = windowRect.topLeft, size = windowRect.size, style = Stroke(width = 4f))
             drawRect(Color.Red, topLeft = targetRect.topLeft, size = targetRect.size, style = Stroke(width = 4f))
         }
     )
+}
+
+private fun getContentPlacement2(windowRect: Rect, targetRect: Rect, contentRect: Rect, padding: Int = 0): Offset {
+    val contentHeight = contentRect.height
+    val totalHeight = windowRect.height
+    val contentWidth = contentRect.width
+    val contentWidthCenter = contentWidth/2
+
+    val availableTop = (windowRect.topCenter - targetRect.topCenter).getDistance() - padding
+    val availableBottom = (windowRect.bottomCenter - targetRect.bottomCenter).getDistance() - padding
+
+    val movableHeight = contentHeight + padding
+    val canBePlacedOutsideTarget = availableTop > movableHeight && availableBottom > movableHeight
+
+    val yPos = if (canBePlacedOutsideTarget) {
+        val availableTopInPercent = ((availableTop / totalHeight)*100)
+        val availableBottomInPercent = ((availableBottom / totalHeight)*100)
+        println("Top -> $availableTop $availableTopInPercent $availableBottom $availableBottomInPercent $totalHeight")
+        if (availableTopInPercent >= availableBottomInPercent) {
+            // Top has more space
+            //-(contentRect.height + padding)
+            targetRect.top - contentRect.height + padding
+        } else {
+            // Bottom has more space
+            //(contentRect.height + padding)
+            targetRect.bottom + padding
+        }
+    } else {
+        targetRect.center.y
+    }
+
+    val movableWidth = contentWidthCenter + padding
+
+    val isEdgeOverlapping = targetRect.topCenter
+    val leftTargetDistance = windowRect.left - targetRect.left
+    if (leftTargetDistance < movableWidth) {
+        //
+    }
+    val rightTargetDistance = windowRect.right - targetRect.right
+
+
+    // Center pos
+    val targetCenter = targetRect.width / 2
+
+    // x2 = x1 + ((w1 - w2) / 2);
+
+
+
+    //val xPos = 0f//-(contentWidthCenter + padding)
+    var xPos = targetRect.left + ((targetRect.width - contentWidth)/2)
+    var overlapOffset = Offset(xPos, windowRect.center.y)
+
+    val hasCenterGotInIt = windowRect.contains(Offset(xPos, windowRect.center.y))
+            && windowRect.contains(Offset(xPos + contentWidth, windowRect.center.y))
+    if (!hasCenterGotInIt) {
+        val isLeftOverlap = !windowRect.contains(Offset(xPos, windowRect.center.y))
+        if (isLeftOverlap) {
+            // Left overlap
+            // Place the x position to
+            xPos = targetRect.left
+        } else {
+            // Right overlap
+            xPos = targetRect.right - contentWidth
+        }
+    }
+    //val rect = contentRect.translate(xPos, yPos)
+    //return Pair(xPos.toInt()/*rect.topLeft.x.toInt()*/, /*rect.topLeft.y*/yPos.toInt())
+    return Offset(xPos, yPos)
 }
 
 private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect: Rect, padding: Int = 0): Pair<Int, Int> {
@@ -609,10 +712,10 @@ private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect:
     println("isContentWidthAvailableInLeft $isContentWidthAvailableInLeft")
     println("isContentWidthAvailableInRight $isContentWidthAvailableInRight")
 
-    val xPos = if (isLeftInDefinedBoundary && isRightInDefinedBoundary) {
+    val xPos = //if (isLeftInDefinedBoundary && isRightInDefinedBoundary) {
         // Show in center
         -contentHalf
-    } else if (isLeftInDefinedBoundary) {
+    /*} else if (isLeftInDefinedBoundary) {
         // Show in left
         (contentWidth + padding)
     } else if (isRightInDefinedBoundary) {
@@ -620,7 +723,7 @@ private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect:
         (targetRect.width + padding)
     } else {
         0f
-    }
+    }*/
 
     /*if (totalOneTenthSapce > targetRect.left) {
 
