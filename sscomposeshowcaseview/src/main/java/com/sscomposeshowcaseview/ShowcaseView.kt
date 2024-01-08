@@ -47,6 +47,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
@@ -121,7 +122,7 @@ private fun IntroShowCase2(
     val targetRect = targets.coordinates.boundsInRoot()
     val targetRadius = targetRect.maxDimension / 2f + 20
 
-    var textCoordinate: LayoutCoordinates? by remember { mutableStateOf(null) }
+    var textCoordinate: Offset? by remember { mutableStateOf(null) }
     var outerRadius by remember { mutableStateOf(0f) }
     val topArea = 10.dp
     val screenHeight = LocalConfiguration.current.screenHeightDp
@@ -131,6 +132,10 @@ private fun IntroShowCase2(
     var outerOffset by remember { mutableStateOf(Offset(0f, 0f)) }
 
     textCoordinate?.let {
+        val textRect = Rect(
+                it,
+                size = Size(placeable.width.toFloat(), placeable.height.toFloat())
+            )
         val textRect = it.boundsInRoot()
         val textHeight = it.size.height
         val isInGutter = topArea > textYOffset || textYOffset > screenHeight.dp.minus(topArea)
@@ -377,7 +382,7 @@ private fun IntroShowCase2(
     // Draw content
     ShowText2(
         targetRect = targetRect,
-        updateCoordinates = { textCoordinate = it },
+        contentOffset = { textCoordinate = it },
         content = content,
         onSkip = {
             showcaseDelayScope.cancel()
@@ -759,42 +764,33 @@ private fun ShowText(
 @Composable
 fun ShowText2(
     targetRect: Rect,
-    updateCoordinates: (LayoutCoordinates) -> Unit,
+    contentOffset: (Offset) -> Unit,
     content: @Composable ShowcaseScope.() -> Unit,
     onSkip: () -> Unit = { },
     onSkipAll: () -> Unit = { }
 ) {
-
-    //val targetRect = Rect(471f, 1994f, 552f, 2075f)
-    val sampleRect = Rect(471f, 1994f, 552f, 2080f)
-
-    var txtOffsetY by remember { mutableStateOf(0f) }
-    var txtOffsetX by remember { mutableStateOf(0f) }
-    var txtRightOffSet by remember { mutableStateOf(0f) }
     val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.toFloat()
-
-    val x = targetRect.right + 50
-    val y = targetRect.bottom + 50
-    //var contentRect by remember { mutableStateOf(targetRect.translate(Offset(50f, 0f))) }
-    var windowRect by remember { mutableStateOf(Rect.Zero) }
-    var contentSize by remember { mutableStateOf(Size.Zero) }
-    val contentRect by remember(targetRect, contentSize) {
-        mutableStateOf(Rect(targetRect.topLeft, contentSize))
-    }
-
-    val (ox, oy) = remember(windowRect, targetRect, contentRect) {
-        getContentPlacement(windowRect, targetRect, contentRect)
-    }
-
     Column(modifier = Modifier
-        .offset {
-            IntOffset(ox, oy)
-        }
-        .onGloballyPositioned {
-            windowRect = it.parentLayoutCoordinates?.boundsInRoot() ?: Rect.Zero
-            contentSize = it.boundsInRoot().size
-            updateCoordinates(it)
+        .layout { measurable, constraints ->
+            //measurable
+            val windowRect = Rect(
+                offset = Offset.Zero,
+                size = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
+            )
+            val placeable = measurable.measure(constraints)
+            val contentRect = Rect(
+                targetRect.topLeft,
+                size = Size(placeable.width.toFloat(), placeable.height.toFloat())
+            )
+            layout(placeable.width, placeable.height) {
+                val offset = getContentPlacement(
+                    windowRect, targetRect, contentRect
+                )
+                placeable.place(
+                    IntOffset(offset.x.toInt(), offset.y.toInt())
+                )
+                contentOffset(offset)
+            }
         }
         .padding(2.dp)
     ) {
@@ -809,34 +805,47 @@ fun ShowText2(
     }
 }
 
-private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect: Rect): Pair<Int, Int> {
+private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect: Rect, padding: Int = 0): Offset {
     val contentHeight = contentRect.height
+    val totalHeight = windowRect.height
     val contentWidth = contentRect.width
-    val availableWidth = windowRect.width - contentRect.width
 
-    val availableTop = (windowRect.top - targetRect.top).absoluteValue
-    val availableBottom = (windowRect.bottom - targetRect.bottom).absoluteValue
-    val availableLeft = windowRect.left - targetRect.left
-    val availableRight = windowRect.right - targetRect.right
+    val availableTop = (windowRect.topCenter - targetRect.topCenter).getDistance() - padding
+    val availableBottom = (windowRect.bottomCenter - targetRect.bottomCenter).getDistance() - padding
 
-    val contentHalf = contentWidth/2
-    //println("Space Available : Half $contentWidth Left ${targetRect.left}")
-    //println("Space Available : Top $availableBottom Top $contentHeight")
-    val x = if (abs(contentHalf) <= abs(targetRect.left)) {
-        -contentHalf
+    val movableHeight = contentHeight + padding
+    val canBePlacedOutsideTarget = availableTop > movableHeight || availableBottom > movableHeight
+
+    val yPos = if (canBePlacedOutsideTarget) {
+        val availableTopInPercent = ((availableTop / totalHeight)*100)
+        val availableBottomInPercent = ((availableBottom / totalHeight)*100)
+        if (availableTopInPercent >= availableBottomInPercent) {
+            // Top has more space
+            targetRect.top - contentRect.height + padding
+        } else {
+            // Bottom has more space
+            targetRect.bottom + padding
+        }
     } else {
-        0f
+        targetRect.center.y
     }
 
-    return if (availableBottom > contentHeight) {
-        // We got more space at Bottom
-        val rect = contentRect.translate(x, targetRect.height)
-        Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
-    } else {
-        // We got more space at Top
-        val rect = contentRect.translate(x, -contentHeight)
-        Pair(rect.topLeft.x.toInt(), rect.topLeft.y.toInt())
+    var xPos = targetRect.left + ((targetRect.width - contentWidth)/2)
+
+    val hasCenterGotInIt = windowRect.contains(Offset(xPos, windowRect.center.y))
+            && windowRect.contains(Offset(xPos + contentWidth, windowRect.center.y))
+    if (!hasCenterGotInIt) {
+        val isLeftOverlap = !windowRect.contains(Offset(xPos, windowRect.center.y))
+        if (isLeftOverlap) {
+            // Left overlap
+            // Place the x position to
+            xPos = targetRect.left
+        } else {
+            // Right overlap
+            xPos = targetRect.right - contentWidth
+        }
     }
+    return Offset(xPos, yPos)
 }
 
 private fun getOuterRadius(textRect: Rect, targetRect: Rect): Float {
