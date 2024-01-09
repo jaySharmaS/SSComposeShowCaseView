@@ -120,9 +120,10 @@ private fun IntroShowCase2(
     onSkipAll: () -> Unit
 ) {
     val targetRect = targets.coordinates.boundsInRoot()
+    val padding = targets.padding
     val targetRadius = targetRect.maxDimension / 2f + 20
 
-    var textCoordinate: Offset? by remember { mutableStateOf(null) }
+    var textCoordinate: Rect? by remember { mutableStateOf(null) }
     var outerRadius by remember { mutableStateOf(0f) }
     val topArea = 10.dp
     val screenHeight = LocalConfiguration.current.screenHeightDp
@@ -132,16 +133,11 @@ private fun IntroShowCase2(
     var outerOffset by remember { mutableStateOf(Offset(0f, 0f)) }
 
     textCoordinate?.let {
-        val textRect = Rect(
-                it,
-                size = Size(placeable.width.toFloat(), placeable.height.toFloat())
-            )
-        val textRect = it.boundsInRoot()
-        val textHeight = it.size.height
+        val textHeight = it.size.height.toInt()
         val isInGutter = topArea > textYOffset || textYOffset > screenHeight.dp.minus(topArea)
         outerOffset =
-            getOuterCircleCenter(targetRect, textRect, targetRadius, textHeight, isInGutter)
-        outerRadius = getOuterRadius(textRect, targetRect) + targetRadius
+            getOuterCircleCenter(targetRect, it, targetRadius, textHeight, isInGutter)
+        outerRadius = getOuterRadius(it, targetRect) + targetRadius
     }
 
     val showcaseDelayScope = rememberCoroutineScope()
@@ -303,7 +299,7 @@ private fun IntroShowCase2(
             }
         }
         ShowcaseType.POINTER -> {
-            textCoordinate?.boundsInParent()?.let { pointerRect ->
+            textCoordinate?.let { pointerRect ->
                 val pathData = remember(pointerRect, targetRect) {
                     getPathData(fromRect = pointerRect, toRect = targetRect)
                 }
@@ -382,6 +378,7 @@ private fun IntroShowCase2(
     // Draw content
     ShowText2(
         targetRect = targetRect,
+        padding = padding,
         contentOffset = { textCoordinate = it },
         content = content,
         onSkip = {
@@ -764,7 +761,8 @@ private fun ShowText(
 @Composable
 fun ShowText2(
     targetRect: Rect,
-    contentOffset: (Offset) -> Unit,
+    padding: Dp,
+    contentOffset: (Rect) -> Unit,
     content: @Composable ShowcaseScope.() -> Unit,
     onSkip: () -> Unit = { },
     onSkipAll: () -> Unit = { }
@@ -784,12 +782,14 @@ fun ShowText2(
             )
             layout(placeable.width, placeable.height) {
                 val offset = getContentPlacement(
-                    windowRect, targetRect, contentRect
+                    windowRect, targetRect, contentRect, padding.roundToPx()
                 )
                 placeable.place(
                     IntOffset(offset.x.toInt(), offset.y.toInt())
                 )
-                contentOffset(offset)
+                contentOffset(
+                    Rect(offset, Size(placeable.width.toFloat(), placeable.height.toFloat()))
+                )
             }
         }
         .padding(2.dp)
