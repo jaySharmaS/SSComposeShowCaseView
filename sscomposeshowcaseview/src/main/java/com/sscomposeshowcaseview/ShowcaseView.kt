@@ -93,7 +93,7 @@ fun ShowCaseTarget(
     }
 
     currentTarget?.let {
-        IntroShowCase2(
+        IntroShowCase(
             targets = it, isAutomaticShowcase = isEnableAutoShowCase,
             content = it.content,
             onShowCaseCompleted = {
@@ -111,8 +111,13 @@ fun ShowCaseTarget(
     }
 }
 
+/**
+ * get the radius, x and y offsets and coordinates to calculate radius and size for the rectangle and circle
+ * @param targets the target on which showcase will be showed.
+ * @param onShowCaseCompleted do the needful on completing showcase view.
+ */
 @Composable
-private fun IntroShowCase2(
+private fun IntroShowCase(
     targets: ShowcaseProperty,
     isAutomaticShowcase: Boolean = false,
     content: @Composable ShowcaseScope.() -> Unit,
@@ -376,7 +381,7 @@ private fun IntroShowCase2(
     }
 
     // Draw content
-    ShowText2(
+    ShowText(
         targetRect = targetRect,
         padding = padding,
         contentOffset = { textCoordinate = it },
@@ -387,266 +392,6 @@ private fun IntroShowCase2(
         },
         onSkipAll = {
             showcaseDelayScope.cancel()
-            onSkipAll()
-        }
-    )
-}
-
-/**
- * get the radius, x and y offsets and coordinates to calculate radius and size for the rectangle and circle
- * @param targets the target on which showcase will be showed.
- * @param onShowCaseCompleted do the needful on completing showcase view.
- */
-@Composable
-private fun IntroShowCase(
-    targets: ShowcaseProperty,
-    isAutomaticShowcase: Boolean = false,
-    content: @Composable ShowcaseScope.() -> Unit,
-    onShowCaseCompleted: () -> Unit,
-    onSkipAll: () -> Unit
-) {
-    val targetRect = targets.coordinates.boundsInRoot()
-    val targetRadius = targetRect.maxDimension / 2f + 20
-    val xOffset = targetRect.topLeft.x
-    val yOffset = targetRect.topLeft.y
-    val rectSize = targets.coordinates.boundsInParent().size
-
-    // Animation setup for rounded animation
-    val animationSpec = infiniteRepeatable<Float>(
-        animation = tween(2000, easing = FastOutLinearInEasing),
-        repeatMode = if (targets.showCaseType == ShowcaseType.ANIMATED_RECTANGLE)
-            RepeatMode.Reverse
-        else
-            RepeatMode.Restart
-    )
-    val animaTables = listOf(
-        remember { Animatable(0f) },
-        remember { Animatable(0f) }
-    )
-    animaTables.forEachIndexed { index, animaTable ->
-        LaunchedEffect(animaTable) {
-            delay(index * 1000L)
-            animaTable.animateTo(1f, animationSpec = animationSpec)
-        }
-    }
-
-    val outerAnimaTable = remember { Animatable(0.6f) }
-
-    LaunchedEffect(targets) {
-        outerAnimaTable.snapTo(0.6f)
-        outerAnimaTable.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(500, easing = FastOutSlowInEasing)
-        )
-    }
-
-    // Map animation to y position of the components
-    val dys = animaTables.map { it.value }
-
-    //Text coordinates and outer radius
-    var textCoordinate: LayoutCoordinates? by remember { mutableStateOf(null) }
-    var outerRadius by remember { mutableStateOf(0f) }
-    val topArea = 10.dp
-    val screenHeight = LocalConfiguration.current.screenHeightDp
-    val textYOffset = with(LocalDensity.current) {
-        targets.coordinates.positionInRoot().y.toDp()
-    }
-    var outerOffset by remember { mutableStateOf(Offset(0f, 0f)) }
-
-
-    textCoordinate?.let {
-        val textRect = it.boundsInRoot()
-        val textHeight = it.size.height
-        val isInGutter = topArea > textYOffset || textYOffset > screenHeight.dp.minus(topArea)
-        outerOffset =
-            getOuterCircleCenter(targetRect, textRect, targetRadius, textHeight, isInGutter)
-        outerRadius = getOuterRadius(textRect, targetRect) + targetRadius
-    }
-
-    var timerTask: TimerTask? = null
-    Canvas(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(targets) {
-                if (isAutomaticShowcase) {
-                    timerTask = Timer(true).schedule(targets.showcaseDelay) {
-                        onShowCaseCompleted()
-                    }
-                } else {
-                    detectTapGestures { tapOffset ->
-                        if (targetRect.contains(tapOffset)) {
-                            onShowCaseCompleted()
-                        }
-                    }
-                }
-            }
-            .graphicsLayer(alpha = 0.99f)
-    ) {
-        when (targets.showCaseType) {
-            /**
-             * Rounded ShowCaseView
-             */
-            ShowcaseType.SIMPLE_ROUNDED -> {
-                drawCircle(
-                    color = Color.Black.copy(alpha = targets.blurOpacity),
-                    radius = size.maxDimension,
-                    alpha = 0.9f
-                )
-                drawCircle(
-                    color = Color.White,
-                    radius = targetRadius - 10f,
-                    center = targetRect.center,
-                    blendMode = BlendMode.Clear
-                )
-            }
-            /**
-             * Rectangle ShowCaseView
-             */
-            ShowcaseType.SIMPLE_RECTANGLE -> {
-                drawRect(
-                    Color.Black.copy(alpha = targets.blurOpacity),
-                    size = Size(size.width + 40f, size.height + 40f),
-                    style = Fill,
-                )
-                drawRect(
-                    Color.White,
-                    size = Size(rectSize.width + 15f, rectSize.height + 15f),
-                    style = Fill,
-                    topLeft = Offset(xOffset - 8, yOffset - 8),
-                    blendMode = BlendMode.Clear
-                )
-            }
-            /**
-             * Rounded ShowCaseView with animation
-             */
-            ShowcaseType.ANIMATED_ROUNDED -> {
-                drawCircle(
-                    color = Color.Black,
-                    center = outerOffset,
-                    radius = outerRadius * outerAnimaTable.value,
-                    alpha = targets.blurOpacity
-                )
-                // draw circle with animation
-                dys.forEach { dy ->
-                    drawCircle(
-                        color = Color.White,
-                        radius = targetRect.maxDimension * dy * 2f,
-                        center = targetRect.center,
-                        alpha = 1 - dy
-                    )
-                }
-                drawCircle(
-                    color = Color.White,
-                    radius = targetRadius,
-                    center = targetRect.center,
-                    blendMode = BlendMode.Clear
-                )
-            }
-            /**
-             * Rectangle ShowCaseView with animation
-             */
-            ShowcaseType.ANIMATED_RECTANGLE -> {
-                drawRect(
-                    Color.Black.copy(alpha = targets.blurOpacity),
-                    size = Size(size.width + 40f, size.height + 40f),
-                    style = Fill,
-                )
-                drawRect(
-                    Color.White,
-                    size = Size(rectSize.width + 15f, rectSize.height + 15f),
-                    style = Fill,
-                    topLeft = Offset(xOffset - 8, yOffset - 8),
-                    blendMode = BlendMode.Clear
-                )
-                dys.forEach { dy ->
-                    drawRect(
-                        color = Color.White.copy(alpha = targets.blurOpacity),
-                        size = Size(rectSize.width * dy * 2, rectSize.height * dy * 2),
-                        topLeft = Offset(xOffset - 12, yOffset - 12),
-                        alpha = 1 - dy
-                    )
-                }
-            }
-            ShowcaseType.POINTER -> {
-                /*drawRect(
-                    Color.Black.copy(alpha = targets.blurOpacity),
-                    size = Size(size.width + 40f, size.height + 40f),
-                    style = Fill,
-                )
-                drawRect(
-                    Color.White,
-                    size = Size(rectSize.width + 15f, rectSize.height + 15f),
-                    style = Fill,
-                    topLeft = Offset(xOffset - 8, yOffset - 8),
-                    blendMode = BlendMode.Clear
-                )
-
-                val contentRect = textCoordinate?.boundsInRoot() ?: Rect.Zero
-                if ((rectSize.width > size.width) || (rectSize.height > size.height)) {
-                    Log.d("TAG", "Distance from center is : width || height")
-                } else {
-                    if (contentRect.overlaps(targetRect)) {
-                        // find distance from center to top and bottom direction
-                        val distanceFromCenter = center.y - targetRect.center.y
-                        if (distanceFromCenter > 0) {
-                            // top
-                            Log.d("TAG", "Distance from center is : Top")
-                        } else {
-                            // bottom
-                            Log.d("TAG", "Distance from center is : Bottom")
-                        }
-                    }
-                }*/
-
-                /*drawRect(
-                    Color.Black.copy(alpha = 0.4f),
-                    size = Size(size.width + 40f, size.height + 40f),
-                    style = Fill,
-                )
-                drawRect(
-                    Color.White,
-                    size = targetRect.size,
-                    style = Fill,
-                    topLeft = targetRect.topLeft,
-                    blendMode = BlendMode.Clear
-                )
-                textCoordinate?.boundsInParent()?.let { pointerRect ->
-                    drawRect(
-                        Color.White,
-                        size = pointerRect.size,
-                        style = Fill,
-                        topLeft = pointerRect.topLeft,
-                        blendMode = BlendMode.Clear
-                    )
-                }
-                drawPath(
-                    path = animatedPath.value,
-                    color = Color.White,
-                    style = Stroke(width = 3.dp.value)
-                )
-                drawCircle(Color.White, radius = circleWidth.value.dp.toPx(), center = pathData.last())
-                drawCircle(Color.Gray, radius = circleWidth.value.dp.toPx() - density, center = pathData.last())*/
-            }
-        }
-    }
-
-    //val path = Path()
-    //path.moveTo()
-
-    ShowText(
-        currentTarget = targets,
-        targetRect = targetRect,
-        targetRadius = targetRadius,
-        updateCoordinates = {
-            textCoordinate = it
-        },
-        content = content,
-        onSkip = {
-            timerTask?.cancel()
-            onShowCaseCompleted()
-        },
-        onSkipAll = {
-            timerTask?.cancel()
             onSkipAll()
         }
     )
@@ -676,90 +421,7 @@ private fun DrawOnCanvas(
  * @param updateCoordinates return when coordinates get updated
  */
 @Composable
-private fun ShowText(
-    currentTarget: ShowcaseProperty,
-    targetRect: Rect,
-    targetRadius: Float,
-    contentMargin: Dp = 0.dp,
-    updateCoordinates: (LayoutCoordinates) -> Unit,
-    content: @Composable ShowcaseScope.() -> Unit,
-    onSkip: () -> Unit,
-    onSkipAll: () -> Unit
-) {
-    var txtOffsetY by remember { mutableStateOf(0f) }
-    var txtOffsetX by remember { mutableStateOf(0f) }
-    var txtRightOffSet by remember { mutableStateOf(0f) }
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.toFloat()
-
-    val x = targetRect.right + 50
-    val y = targetRect.bottom + 50
-    var contentRect by remember { mutableStateOf(targetRect.translate(x, y)) }
-    var windowRect by remember { mutableStateOf(Rect.Zero) }
-    Column(modifier = Modifier
-        .offset(
-            x = with(LocalDensity.current) { txtOffsetX.toDp() },
-            y = with(LocalDensity.current) { txtOffsetY.toDp() }
-        )
-        .onGloballyPositioned {
-            updateCoordinates(it)
-            //val contentHeight = it.size.height
-            //contentRect = it.boundsInRoot()
-            windowRect = it.parentLayoutCoordinates?.boundsInRoot() ?: Rect.Zero
-            val targetRectWithPadding = targetRect.copy()
-            val textHeight = it.size.height
-            val possibleTop =
-                if (currentTarget.showCaseType == ShowcaseType.ANIMATED_ROUNDED) {
-                    targetRect.center.y - targetRadius - textHeight
-                } else {
-                    targetRect.center.y - textHeight + 200
-                }
-            val possibleLeft = targetRect.topLeft.x
-            txtOffsetY = if (possibleTop > 0) {
-                possibleTop
-            } else {
-                targetRect.center.y + targetRadius - 140
-            }
-            txtRightOffSet = it.boundsInRoot().topRight.x
-            txtOffsetX = it.boundsInRoot().topRight.x - it.size.width
-            txtOffsetX = if (possibleLeft >= screenWidth / 2) {
-                screenWidth / 2 + targetRadius
-            } else {
-                possibleLeft
-            }
-            txtRightOffSet += targetRadius
-        }
-        .padding(2.dp)
-    ) {
-
-        BoxWithConstraints(
-            modifier = Modifier
-                .width(
-                    if (txtRightOffSet > screenWidth) {
-                        configuration.screenWidthDp.dp / 2 + 40.dp
-                    } else {
-                        configuration.screenWidthDp.dp
-                    }
-                )
-                .background(Color.White, RoundedCornerShape(5))
-        ) {
-            ShowcaseScopeImpl(this, onSkip, onSkipAll).content()
-        }
-    }
-    //contentRect = contentRect.translate(targetRect.bottomCenter)
-    Canvas(
-        modifier = Modifier
-            .fillMaxSize(),
-        onDraw = {
-            drawRect(Color.Red, topLeft = contentRect.topLeft, size = contentRect.size, style = Stroke(width = 4f))
-            drawRect(Color.Red, topLeft = windowRect.topLeft, size = windowRect.size, style = Stroke(width = 4f))
-            drawRect(Color.Red, topLeft = targetRect.topLeft, size = targetRect.size, style = Stroke(width = 4f))
-        }
-    )
-}
-
-@Composable
-fun ShowText2(
+fun ShowText(
     targetRect: Rect,
     padding: Dp,
     contentOffset: (Rect) -> Unit,
@@ -798,7 +460,6 @@ fun ShowText2(
         BoxWithConstraints(
             modifier = Modifier
                 .widthIn(max = configuration.screenWidthDp.dp / 2 + 40.dp)
-                .background(Color.White, RoundedCornerShape(5))
         ) {
             ShowcaseScopeImpl(this, onSkip, onSkipAll).content()
         }
@@ -821,7 +482,7 @@ private fun getContentPlacement(windowRect: Rect, targetRect: Rect, contentRect:
         val availableBottomInPercent = ((availableBottom / totalHeight)*100)
         if (availableTopInPercent >= availableBottomInPercent) {
             // Top has more space
-            targetRect.top - contentRect.height + padding
+            targetRect.top - (contentRect.height + padding)
         } else {
             // Bottom has more space
             targetRect.bottom + padding
@@ -890,93 +551,3 @@ private fun getOuterCircleCenter(
 
     return Offset(outerCenterX, outerCenterY)
 }
-
-private fun findContentPosition(
-    anchor: Int,
-
-) {
-
-}
-
-private fun tryFitVertical(
-    outParams: Param,
-    yOffset: Int,
-    height: Int,
-    anchorHeight: Int,
-    drawingLocationY: Int,
-    screenLocationY: Int,
-    displayFrameTop: Int,
-    displayFrameBottom : Int,
-    allowResize: Boolean
-): Boolean {
-    val winOffsetY = screenLocationY - drawingLocationY;
-    val anchorTopInScreen = outParams.y + winOffsetY;
-    val spaceBelow = displayFrameBottom - anchorTopInScreen;
-    if (anchorTopInScreen >= displayFrameTop && height <= spaceBelow) {
-        return true
-    }
-
-    val spaceAbove = anchorTopInScreen - anchorHeight - displayFrameTop
-    if (height <= spaceAbove) {
-        // Move everything up.
-        /*if (false) {
-            yOffset += anchorHeight
-        }*/
-        outParams.y = drawingLocationY - height + yOffset
-
-        return true
-    }
-
-    if (positionInDisplayVertical(outParams, height, drawingLocationY, screenLocationY,
-            displayFrameTop, displayFrameBottom, allowResize)) {
-        return true
-    }
-
-    return false
-}
-
-private fun positionInDisplayVertical(
-    outParam: Param,
-    height: Int,
-    drawingLocationY: Int,
-    screenLocationY: Int,
-    displayFrameTop: Int,
-    displayFrameBottom: Int,
-    canResize: Boolean
-) : Boolean {
-    var fitsInDisplay = true
-
-    val winOffsetY = screenLocationY - drawingLocationY
-    outParam.y += winOffsetY
-    outParam.height = height
-
-    val bottom = outParam.y + height
-    if (bottom > displayFrameBottom) {
-        // The popup is too far down, move it back in.
-        outParam.y -= bottom - displayFrameBottom
-    }
-
-    if (outParam.y < displayFrameTop) {
-        // The popup is too far up, move it back in and clip if
-        // it's still too large.
-        outParam.y = displayFrameTop
-
-        val displayFrameHeight = displayFrameBottom - displayFrameTop
-        if (canResize && height > displayFrameHeight) {
-            outParam.height = displayFrameHeight
-        } else {
-            fitsInDisplay = false
-        }
-    }
-
-    outParam.y -= winOffsetY
-
-    return fitsInDisplay
-}
-
-data class Param(
-    var x: Int = 0,
-    var y: Int = 0,
-    var height: Int = 0,
-    var width: Int = 0,
-)

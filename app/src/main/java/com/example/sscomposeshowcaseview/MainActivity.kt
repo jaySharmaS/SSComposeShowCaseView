@@ -1,22 +1,14 @@
 package com.example.sscomposeshowcaseview
 
-import android.graphics.Typeface
 import android.os.Bundle
-import android.text.Spanned
-import android.text.style.ForegroundColorSpan
-import android.text.style.StyleSpan
-import android.text.style.UnderlineSpan
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -48,29 +40,20 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.text.HtmlCompat
+import com.sscomposeshowcaseview.HtmlText
 import com.sscomposeshowcaseview.ShowCaseTarget
 import com.sscomposeshowcaseview.ShowcaseProperty
 import com.sscomposeshowcaseview.ShowcaseType
-import com.sscomposeshowcaseview.TestOverlap
-import com.sscomposeshowcaseview.TestPointer2
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -79,32 +62,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            /*Box(modifier = Modifier.fillMaxSize()) {
-                TestPointer2()
-            }*/
             ShowcaseExample()
-            /*Box(modifier = Modifier.fillMaxSize()) {
-                TestOverlap(content =  {
-                    Column(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "More options",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        Text(
-                            text = "Click here to see options",
-                            fontSize = 14.sp,
-                            color = Color.Black
-                        )
-                        Button(onClick = { }) {
-                            Text(text = "Skip All")
-                        }
-                    }
-                })
-            }*/
         }
     }
 }
@@ -335,19 +293,10 @@ fun UserPost(post: Item, target: SnapshotStateMap<String, ShowcaseProperty>) {
                             target["save"] = ShowcaseProperty(
                                 index = 5,
                                 coordinates = it,
+                                title = "Save button",
+                                subTitle = HtmlText("Click <i>here</i> to save <b>post</b>"),
                                 showCaseType = ShowcaseType.ANIMATED_RECTANGLE
-                            ) {
-                                ShowCaseDescription(
-                                    title = "Save button",
-                                    subTitle = HtmlCompat
-                                        .fromHtml(
-                                            "Click <i>here</i> to save <b>post</b>",
-                                            HtmlCompat.FROM_HTML_MODE_COMPACT
-                                        )
-                                        .toAnnotatedString(),
-                                    onSkip = onSkipShowcase
-                                )
-                            }
+                            )
                         }
                 )
             }
@@ -377,55 +326,6 @@ fun ShowCaseDescription(
         )
         Button(onClick = onSkip) {
             Text(text = "Skip")
-        }
-    }
-}
-
-@Composable
-fun ShowCaseDescription(
-    title: String,
-    subTitle: AnnotatedString,
-    onSkip: () -> Unit = { }
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = title,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-        Text(
-            text = subTitle,
-            fontSize = 14.sp,
-            color = Color.White
-        )
-        Button(onClick = onSkip) {
-            Text(text = "Skip")
-        }
-    }
-}
-
-/**
- * Converts a [Spanned] into an [AnnotatedString] trying to keep as much formatting as possible.
- *
- * Currently supports `bold`, `italic`, `underline` and `color`.
- */
-private fun Spanned.toAnnotatedString(): AnnotatedString = buildAnnotatedString {
-    val spanned = this@toAnnotatedString
-    append(spanned.toString())
-    getSpans(0, spanned.length, Any::class.java).forEach { span ->
-        val start = getSpanStart(span)
-        val end = getSpanEnd(span)
-        when (span) {
-            is StyleSpan -> when (span.style) {
-                Typeface.BOLD -> addStyle(SpanStyle(fontWeight = FontWeight.Bold), start, end)
-                Typeface.ITALIC -> addStyle(SpanStyle(fontStyle = FontStyle.Italic), start, end)
-                Typeface.BOLD_ITALIC -> addStyle(SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic), start, end)
-            }
-            is UnderlineSpan -> addStyle(SpanStyle(textDecoration = TextDecoration.Underline), start, end)
-            is ForegroundColorSpan -> addStyle(SpanStyle(color = Color(span.foregroundColor)), start, end)
         }
     }
 }
