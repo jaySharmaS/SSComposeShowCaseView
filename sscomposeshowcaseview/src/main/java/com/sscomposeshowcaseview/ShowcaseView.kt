@@ -387,7 +387,6 @@ private fun IntroShowCase(
         contentOffset = { textCoordinate = it },
         content = content,
         onSkip = {
-            showcaseDelayScope.cancel()
             onShowCaseCompleted()
         },
         onSkipAll = {
